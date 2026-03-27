@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ${PROJECT_NAME:-ainewser}-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ainewser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ainewser_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-ainewser}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ainewser}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ainweiser_network
+
+  # API Service
+  api:
+    build:
+      context: ./api-service
+      dockerfile: Dockerfile
+    container_name: ${PROJECT_NAME:-ainewser}-api
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-ainewser}:${POSTGRES_PASSWORD:-ainewser_pass}@postgres:5432/${POSTGRES_DB:-ainewser}
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+      # Avoid duplicate crawls: compose already runs crawler service; set true to crawl from API too
+      - CRAWLER_ENABLED=${CRAWLER_ENABLED:-false}
+      - CRAWLER_INTERVAL_SECONDS=${CRAWLER_INTERVAL_SECONDS:-300}
+      - CRAWLER_SPIDER=${CRAWLER_SPIDER:-sina}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./api-service:/app
+    command: >
+      sh -c "
+        alembic upgrade head &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+    networks:
+      - ainweiser_network
+
+  # Crawler Service
+  crawler:
+    build:
+      context: ./crawler-service
+      dockerfile: Dockerfile
+    container_name: ${PROJECT_NAME:-ainewser}-crawler
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-ainewser}:${POSTGRES_PASSWORD:-ainewser_pass}@postgres:5432/${POSTGRES_DB:-ainewser}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - SCRAPY_SETTINGS_MODULE=news_crawler.settings
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_started
+    volumes:
+      - ./crawler-service:/app
+      - crawler_data:/app/.scrapy
+    command: python -m scrapy crawl --logfile=/app/scrapy.log sina
+    networks:
+      - ainweiser_network
+
+  # Web App (Frontend)
+  web:
+    build:
+      context: ./web-app
+      dockerfile: Dockerfile
+    container_name: ${PROJECT_NAME:-ainewser}-web
+    environment:
+      - VITE_API_URL=/api
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    depends_on:
+      - api
+    networks:
+      - ainweiser_network
+
+volumes:
+  postgres_data:
+    driver: local
+  crawler_data:
+    driver: local
+
+networks:
+  ainweiser_network:
+    driver: bridge

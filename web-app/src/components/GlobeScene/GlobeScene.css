@@ -1,0 +1,145 @@
+.globe-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  overflow: hidden;
+}
+
+.globe-canvas-wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.globe-container canvas {
+  cursor: grab;
+}
+
+.globe-container canvas:active {
+  cursor: grabbing;
+}
+
+.geo-layer-indicator {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(10, 14, 26, 0.82);
+  border: 1px solid rgba(100, 160, 255, 0.35);
+  border-radius: 24px;
+  padding: 7px 18px;
+  backdrop-filter: blur(8px);
+  pointer-events: all;
+}
+
+.geo-layer-label {
+  color: rgba(200, 220, 255, 0.95);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.geo-layer-back {
+  background: rgba(80, 130, 230, 0.18);
+  border: 1px solid rgba(100, 160, 255, 0.4);
+  border-radius: 14px;
+  color: rgba(160, 200, 255, 0.9);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 3px 12px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.geo-layer-back:hover {
+  background: rgba(80, 130, 230, 0.35);
+  border-color: rgba(140, 190, 255, 0.7);
+  color: #fff;
+}
+
+.geo-breadcrumb-btn {
+  background: none;
+  border: none;
+  color: rgba(120, 170, 255, 0.85);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.geo-breadcrumb-btn:hover {
+  color: #fff;
+  background: rgba(80, 130, 230, 0.22);
+}
+
+.geo-breadcrumb-btn--region {
+  border: 1px solid rgba(80, 130, 230, 0.3);
+  background: rgba(80, 130, 230, 0.1);
+  color: rgba(160, 200, 255, 0.9);
+}
+
+.geo-breadcrumb-btn--region:hover {
+  background: rgba(80, 130, 230, 0.28);
+  border-color: rgba(100, 160, 255, 0.55);
+  color: #fff;
+}
+
+.geo-breadcrumb-sep {
+  color: rgba(180, 200, 255, 0.4);
+  font-size: 14px;
+  margin: 0 2px;
+  user-select: none;
+}
+
+.admin1-tooltip {
+  position: fixed;
+  z-index: 30;
+  pointer-events: none;
+  background: rgba(10, 14, 26, 0.92);
+  border: 1px solid rgba(255, 200, 80, 0.4);
+  border-radius: 8px;
+  padding: 8px 14px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  max-width: 220px;
+}
+
+.admin1-tooltip-name {
+  color: rgba(255, 240, 200, 0.95);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.admin1-tooltip-heat {
+  color: rgba(255, 200, 80, 0.75);
+  font-size: 11px;
+}
+
+.geo-layer-loading {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  background: rgba(10, 14, 26, 0.75);
+  border: 1px solid rgba(100, 160, 255, 0.25);
+  border-radius: 16px;
+  padding: 6px 18px;
+  color: rgba(160, 200, 255, 0.85);
+  font-size: 12px;
+  backdrop-filter: blur(6px);
+  animation: pulse-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-loading {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}

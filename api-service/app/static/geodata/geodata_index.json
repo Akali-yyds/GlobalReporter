@@ -1,0 +1,37 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-03-25T01:50:46Z",
+  "layers": {
+    "countries": {
+      "file": "countries/ne_110m_admin_0_countries.geojson",
+      "url": "/static/geodata/countries/ne_110m_admin_0_countries.geojson",
+      "description": "Natural Earth 110m country polygons",
+      "id_property": "ISO_A3",
+      "name_property": "NAME",
+      "ready": true
+    },
+    "admin1": {
+      "available_countries": [
+        "AU",
+        "BR",
+        "CN",
+        "DE",
+        "FR",
+        "GB",
+        "IN",
+        "IR",
+        "JP",
+        "KR",
+        "RU",
+        "SA",
+        "TR",
+        "US"
+      ],
+      "url_pattern": "/static/geodata/admin1/{country_code}.geojson",
+      "description": "Admin1 (province/state) boundaries per country",
+      "id_property": "iso_3166_2",
+      "name_property": "name",
+      "ready": true
+    }
+  }
+}

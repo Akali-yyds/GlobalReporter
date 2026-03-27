@@ -1,0 +1,26 @@
+# AiNewser Cron Configuration
+# Install: crontab ainewser-cron.txt
+# View: crontab -l
+# Edit: crontab -e
+
+# Environment
+PATH=/usr/local/bin:/usr/bin:/bin
+PYTHONPATH=/opt/ainewser
+DATABASE_URL=postgresql://ainewser:ainewser_pass@localhost:5432/ainewser
+
+# Run crawler scheduler every 5 minutes
+*/5 * * * * cd /opt/ainewser/crawler-service && python scheduler.py --all >> /var/log/ainewser/scheduler.log 2>&1
+
+# Health check every minute
+* * * * * cd /opt/ainewser/crawler-service && python health_check.py >> /var/log/ainewser/health.log 2>&1
+
+# Run specific spiders on schedule
+# Sina news every 30 minutes
+*/30 * * * * cd /opt/ainewser/crawler-service && python scheduler.py --spider sina >> /var/log/ainewser/sina.log 2>&1
+
+# Weibo every 15 minutes (fast-changing social media)
+*/15 * * * * cd /opt/ainewser/crawler-service && python scheduler.py --spider weibo >> /var/log/ainewser/weibo.log 2>&1
+
+# International news every hour
+0 * * * * cd /opt/ainewser/crawler-service && python scheduler.py --spider bbc >> /var/log/ainewser/bbc.log 2>&1
+30 * * * * cd /opt/ainewser/crawler-service && python scheduler.py --spider reuters >> /var/log/ainewser/reuters.log 2>&1

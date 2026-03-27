@@ -1,0 +1,2961 @@
+﻿{
+  "mode": "commit",
+  "scanned_events": 275,
+  "events_with_geo": 178,
+  "updated_events": 178,
+  "skipped_events": 0,
+  "details": [
+    {
+      "event_id": "78190013-1747-4589-b210-c2a4a9d82333",
+      "title": "NPC deputy calls to make comprehensive sex education a formal part of China's basic education curriculum",
+      "status": "updated",
+      "main_country": "CN",
+      "event_level": "country",
+      "region_tags": [
+        "CN"
+      ],
+      "geo_keys": [
+        "CN"
+      ]
+    },
+    {
+      "event_id": "04eccbfe-f16f-48ed-95f9-8888776f16c3",
+      "title": "Nearly 4.9 million visits from Taiwan to mainland in 2025 with one-third made by young people: CPPCC member",
+      "status": "updated",
+      "main_country": "TW",
+      "event_level": "country",
+      "region_tags": [
+        "TW"
+      ],
+      "geo_keys": [
+        "TW"
+      ]
+    },
+    {
+      "event_id": "87699bb3-1d15-4b32-a6e6-cfd76ef2cb25",
+      "title": "China schedules next moonshot this year: developer",
+      "status": "updated",
+      "main_country": "CN",
+      "event_level": "country",
+      "region_tags": [
+        "CN"
+      ],
+      "geo_keys": [
+        "CN"
+      ]
+    },
+    {
+      "event_id": "93195f68-0c9f-4d05-8621-318c03601566",
+      "title": "涓氱哗绾跨户缁紨缁庯紝骞冲畨濂藉尰鐢熴€佸崕娑﹀尰鑽哗鍚庨鍗?0%锛佸崕瀹濆熀閲戞腐鑲￠€氬垱鏂拌嵂ETF銆佹腐鑲￠€氬尰鐤桬TF寮哄娍缁定",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "cfedacd3-2c17-4b32-b424-2f48c118d844",
+      "title": "閲忓寲娲惧彂鐩堝枩鍚庢定閫?% 棰勮鍏ㄥ勾绾埄鍚屾瘮澧為暱15%鑷?5%",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "a0e00665-1430-4cf0-b64e-1759cfc43f41",
+      "title": "瀹樻柟瀹氳皟锛孉l鈥滆瘝鍏冪粡娴庘€濆礇璧凤紒鍗庡疂鍩洪噾绉戝垱浜哄伐鏅鸿兘ETF锛?89520锛夎繛缁袱鏃ユ定瓒?%锛屾媺鍝嶅弽鏀诲彿瑙掞紒",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "c7a8396a-1e2b-4c39-adac-4b08f8acdf9c",
+      "title": "Struggling Sevilla appoint Garcia Plaza as head coach to replace Almeyda",
+      "status": "updated",
+      "main_country": "ES",
+      "event_level": "city",
+      "region_tags": [
+        "ES"
+      ],
+      "geo_keys": [
+        "ES:2510911"
+      ]
+    },
+    {
+      "event_id": "7986f555-4d27-42f3-8377-df1025021762",
+      "title": "鏉庢鐓滐紝涓浗浣撹偛浠ｈ〃鍥㈤閲戯紒",
+      "status": "updated",
+      "main_country": "CN",
+      "event_level": "country",
+      "region_tags": [
+        "CN",
+        "FR"
+      ],
+      "geo_keys": [
+        "CN",
+        "FR"
+      ]
+    },
+    {
+      "event_id": "912f76d0-c00e-4820-99ab-0b7e7109856e",
+      "title": "鏄ユ櫄甯︾伀鏈哄櫒浜猴紝杩欎釜鏄ヨ妭澶氬湴鏅尯鏈哄櫒浜衡€滃緢蹇欌€?,
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "8b28639c-11a8-4b34-bbc9-b1b8ee7e21bc",
+      "title": "瑗垮寳鈥滄灑绾解€濓紝闆嗕綋璧烽锛?,
+      "status": "updated",
+      "main_country": "CN",
+      "event_level": "admin1",
+      "region_tags": [
+        "CN"
+      ],
+      "geo_keys": [
+        "A1:CN:瑗垮畞"
+      ]
+    },
+    {
+      "event_id": "e1ae300a-90a1-4244-bb2a-8ffb0b86f68f",
+      "title": "鏄熷姩绾厓闄堝缓瀹囪皥浜烘満鍏崇郴锛氳矗浠诲繀椤诲湪浜猴紝鏈哄櫒浜哄仛鐨勪簨蹇呴』浜烘潵鍏滃簳",
+      "status": "updated",
+      "main_country": "CN",
+      "event_level": "admin1",
+      "region_tags": [
+        "CN"
+      ],
+      "geo_keys": [
+        "CN.31"
+      ]
+    },
+    {
+      "event_id": "05a183da-3058-4f4a-8d80-b5f58545b2de",
+      "title": "鍥藉彴鍔烇細鍜屽钩缁熶竴灏嗘槸鍙版咕鍩虹璁炬柦銆佹柊鍨嬪熀纭€璁炬柦鐒曠劧涓€鏂扮殑璧风偣",
+      "status": "updated",
+      "main_country": "TW",
+      "event_level": "country",
+      "region_tags": [
+        "TW"
+      ],
+      "geo_keys": [
+        "TW"
+      ]
+    },
+    {
+      "event_id": "0612a9d0-a24e-419a-a8d1-f2540f953693",
+      "title": "鐧惧害娌堟姈锛氱幇鍦ㄨ皥浜烘満鍏崇郴杈圭晫杩樻棭锛屽彲浠ヨ竟鍙戝睍杈规不鐞?,
+      "status": "updated",
+      "main_country": "CN",
+      "event_level": "admin1",
+      "region_tags": [
+        "CN"
+      ],
+      "geo_keys": [
+        "CN.31"
+      ]
+    },
+    {
+      "event_id": "bad14bec-e825-4df0-bafd-373fa965c94e",
+      "title": "Hong Kong鈥檚 CK Hutchison expands Panama ports claim as losses 鈥榮urpass鈥?US$2 billion",
+      "status": "updated",
+      "main_country": "HK",
+      "event_level": "city",
+      "region_tags": [
+        "HK",
+        "PA"
+      ],
+      "geo_keys": [
+        "HK:1819729",
+        "PA:3703443",
+        "HK"
+      ]
+    },
+    {
+      "event_id": "31418ea7-3e0d-43b7-8f01-0addbc989873",
+      "title": "French municipal vote: What do results mean for 2027 ballot?",
+      "status": "updated",
+      "main_country": "FR",
+      "event_level": "country",
+      "region_tags": [
+        "FR"
+      ],
+      "geo_keys": [
+        "FR"
+      ]
+    },
+    {
+      "event_id": "50631a85-8186-467c-81f8-b6df58eba162",
+      "title": "Rescuers fail to free stranded whale stuck on German coast",
+      "status": "updated",
+      "main_country": "DE",
+      "event_level": "country",
+      "region_tags": [
+        "DE"
+      ],
+      "geo_keys": [
+        "DE"
+      ]
+    },
+    {
+      "event_id": "9cff9606-a444-469b-aefe-5f365112c7dd",
+      "title": "Danish PM's left-wing bloc wins vote but with no majority",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "79b5b035-c612-4ec0-b763-c3cfc2242022",
+      "title": "Families urged not to cuddle lambs after infection outbreak left dozens sick",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "c4157f0d-33d6-4b63-96f6-d5f6509b915a",
+      "title": "How Manchester is giving UK music 'a new lease of life' again",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2643123",
+        "GB"
+      ]
+    },
+    {
+      "event_id": "98698247-72e4-4e23-9527-54fa740d9f63",
+      "title": "\"Trump Is Transactional, Doesn't Think Strategically\": Former US NSA",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR",
+        "US"
+      ],
+      "geo_keys": [
+        "IR",
+        "US"
+      ]
+    },
+    {
+      "event_id": "b6d2653b-893e-4531-80ee-bd6ed53c7224",
+      "title": "US-Israel-Iran War Live Updates: US Sends 15-Point Plan To Iran To End War, Reopen Strait Of Hormuz: Report",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "city",
+      "region_tags": [
+        "IR",
+        "IL"
+      ],
+      "geo_keys": [
+        "IR:112931",
+        "IL",
+        "IR"
+      ]
+    },
+    {
+      "event_id": "274e2479-1f4c-4462-8b2d-69caad068625",
+      "title": "Inside Iran's \"Very Big\" Hormuz-Related Oil And Gas \"Present\" For Trump",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "1efc1bf1-a6c2-4ed6-b134-016c4c413f5a",
+      "title": "NY 銉┿偓銉笺儑銈ｃ偄绌烘腐銇с伄琛濈獊浜嬫晠 鈥滆鍫便亴鐧恒仜銈夈倢銇亱銇ｃ仧鈥?,
+      "status": "updated",
+      "main_country": "US",
+      "event_level": "city",
+      "region_tags": [
+        "US"
+      ],
+      "geo_keys": [
+        "US:5128581"
+      ]
+    },
+    {
+      "event_id": "1bf2f638-7227-4fde-8692-88e970cb76bd",
+      "title": "鏍尽 涓€鏅?700鍐嗚秴鍊や笂銇屻倞 銈ゃ儵銉虫儏鍕倎銇愩倠璀︽垝鎰熷緦閫€銇?,
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "307156f8-39ae-49c8-b663-7b9a2b2ba5be",
+      "title": "銉堛儵銉炽儣澶х当闋?銈ゃ儵銉炽仺銇崝璀颁富寮?鈥滃悎鎰忕祼銇炽仧銇屻仯銇︺亜銈嬧€?,
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "2613f8f2-eefb-4cae-9d80-ed1d181573be",
+      "title": "China consumer stocks jump on strong earnings, but analysts warn of limited recovery",
+      "status": "updated",
+      "main_country": "CN",
+      "event_level": "country",
+      "region_tags": [
+        "CN",
+        "HK"
+      ],
+      "geo_keys": [
+        "CN",
+        "HK:1819729",
+        "HK"
+      ]
+    },
+    {
+      "event_id": "72a0ffba-71ad-4ac9-b70f-785068bb4a7b",
+      "title": "How 鈥榮almon鈥?raised in landlocked Xinjiang is netting fans in China",
+      "status": "updated",
+      "main_country": "CN",
+      "event_level": "country",
+      "region_tags": [
+        "CN"
+      ],
+      "geo_keys": [
+        "CN",
+        "CN.13"
+      ]
+    },
+    {
+      "event_id": "404dc4a3-e441-4040-b041-8fe1938bd11c",
+      "title": "Can Taiwan fulfil its Asia-Pacific drone hub goal with a 鈥榥on-red鈥?supply chain push?",
+      "status": "updated",
+      "main_country": "TW",
+      "event_level": "city",
+      "region_tags": [
+        "TW",
+        "CN"
+      ],
+      "geo_keys": [
+        "TW:1668341",
+        "TW",
+        "CN"
+      ]
+    },
+    {
+      "event_id": "3e4fbd95-a19b-44e2-809e-985766384ce7",
+      "title": "Philippines says working with Washington to obtain oil from US-sanctioned countries",
+      "status": "updated",
+      "main_country": "US",
+      "event_level": "city",
+      "region_tags": [
+        "US",
+        "PH"
+      ],
+      "geo_keys": [
+        "US:4140963",
+        "PH",
+        "US.WA"
+      ]
+    },
+    {
+      "event_id": "8f71a860-989e-44e2-b986-1e7b2cc56795",
+      "title": "Coffee, chilli crab 鈥?and electric cars",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "1cf5f2e6-dcc8-4684-9776-496331c83218",
+      "title": "Meta grants senior executives stock awards to retain talent",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "53c56171-1bf3-4ca9-978c-e5ddbf7325ea",
+      "title": "Indian police manage long lines as panic grows over fuel shortages",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "b81ee6a9-2fe7-4ff9-a4ab-cbb8176b7c68",
+      "title": "Philippines declares national emergency as fuel supplies dwindle",
+      "status": "updated",
+      "main_country": "PH",
+      "event_level": "country",
+      "region_tags": [
+        "PH"
+      ],
+      "geo_keys": [
+        "PH"
+      ]
+    },
+    {
+      "event_id": "0932a1be-6615-41ef-877f-22633e602547",
+      "title": "Philippine president declares energy emergency as impact of Iran war felt",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "93be5e3f-c13e-4b50-8a91-94bc8dc0acc1",
+      "title": "Madagascar鈥檚 military ruler decrees that ministers must pass lie detector tests",
+      "status": "updated",
+      "main_country": "MG",
+      "event_level": "country",
+      "region_tags": [
+        "MG"
+      ],
+      "geo_keys": [
+        "MG"
+      ]
+    },
+    {
+      "event_id": "77191aec-99f8-489f-b8b0-4e54326b6d04",
+      "title": "Strike on Sudan hospital kills at least 64 and wounds 89 more, WHO reports",
+      "status": "updated",
+      "main_country": "SD",
+      "event_level": "country",
+      "region_tags": [
+        "SD"
+      ],
+      "geo_keys": [
+        "SD"
+      ]
+    },
+    {
+      "event_id": "8b4f66e6-c5b4-488c-8e6e-2bfe9f170892",
+      "title": "鈥楨xtraordinary event鈥?for mountain gorillas as new twins born in DRC",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "adcc9e01-6438-496f-97a3-a3df46d6a874",
+      "title": "'I hugged armed man to stop him bombing hospital'",
+      "status": "updated",
+      "main_country": "ZA",
+      "event_level": "city",
+      "region_tags": [
+        "ZA"
+      ],
+      "geo_keys": [
+        "ZA:1002145"
+      ]
+    },
+    {
+      "event_id": "a27503ee-af02-4568-9b9d-b1c09692c866",
+      "title": "'Most difficult decision ever': Receipts Podcast hosts step down after 10 years",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "80197ed0-4fa3-4999-8aa5-a233499b180c",
+      "title": "Is there an election in my area?",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "0ebb5e33-7371-4b67-8d4e-a21d669ca7ae",
+      "title": "Oil price slides as Trump talks up Iran peace negotiations",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "city",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR:112931",
+        "IR"
+      ]
+    },
+    {
+      "event_id": "4a6ee27d-414a-4b20-8192-25ce2b4b7e21",
+      "title": "NHS dentistry is rotting. Will the plan to fix it work?",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "febfcad5-b3e6-4546-bfd4-3eb0547be78e",
+      "title": "'Wildy unaffordable': The harsh reality of shared ownership",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "85c4f6f7-e17b-41f6-88e5-626485837119",
+      "title": "Von der Leyen urges US and Iran to resolve Hormuz crisis, warning distance offers no protection to Australia - The Guardian",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR",
+        "AU"
+      ],
+      "geo_keys": [
+        "IR",
+        "AU"
+      ]
+    },
+    {
+      "event_id": "ce55ddc2-337c-4b1d-83c6-8150f02cf8a9",
+      "title": "NATO scrambles jets as Russia fires nearly 400 drones toward Ukraine, signaling new spring offensive - Fox News",
+      "status": "updated",
+      "main_country": "RU",
+      "event_level": "country",
+      "region_tags": [
+        "RU",
+        "UA"
+      ],
+      "geo_keys": [
+        "RU",
+        "UA"
+      ]
+    },
+    {
+      "event_id": "ce524581-f5a5-404f-b716-bbfcdd18bcbc",
+      "title": "Trump cites progress with Iran, US proposes plan to end war - Reuters",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "6676899f-544e-4296-b151-bb637ce0cf55",
+      "title": "Iran war shows norms of international conflicts have been upended - BBC",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "0588329a-f75a-4c5f-a642-1acdb3a5964e",
+      "title": "Live updates: Iran attacks Israel and Gulf states, plays down Trump peace talks claim - NBC News",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR",
+        "IL"
+      ],
+      "geo_keys": [
+        "IR",
+        "IL"
+      ]
+    },
+    {
+      "event_id": "92c032ff-fc51-41d5-8f71-3afc31d5478f",
+      "title": "Live updates: Trump says Vance and Rubio participating in talks with Iran to end war - CNN",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "8259e8a3-0a23-400a-bf2e-7dbb1d23fd21",
+      "title": "Trump Shifts Onus Of Iran War On Pentagon Chief Pete Hegseth - NDTV",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "3610967d-a6f0-4aa3-96ae-04eede53c79a",
+      "title": "Who Made Rs 840 Crore In 20 Minutes? Mystery Bet On Trump's Iran U-Turn Raises Eyebrows - NDTV",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "4caec1d7-855c-4e6a-a866-8a790dcab1bb",
+      "title": "Meta ordered to pay US$375 million over child exploitation and user safety claims",
+      "status": "updated",
+      "main_country": "MX",
+      "event_level": "country",
+      "region_tags": [
+        "MX",
+        "US"
+      ],
+      "geo_keys": [
+        "MX",
+        "US.NM"
+      ]
+    },
+    {
+      "event_id": "60c65761-6eea-406b-a1c2-80bf6af285f8",
+      "title": "US officials play down controller 鈥榙istraction鈥?in LaGuardia crash",
+      "status": "updated",
+      "main_country": "CA",
+      "event_level": "country",
+      "region_tags": [
+        "CA",
+        "US"
+      ],
+      "geo_keys": [
+        "CA",
+        "US.NY"
+      ]
+    },
+    {
+      "event_id": "47a627f0-c6ac-4cb1-8d04-8a688631adcd",
+      "title": "US unlikely to convince China to join new nuclear arms control agreement, experts say",
+      "status": "updated",
+      "main_country": "CN",
+      "event_level": "country",
+      "region_tags": [
+        "CN",
+        "RU"
+      ],
+      "geo_keys": [
+        "CN",
+        "RU"
+      ]
+    },
+    {
+      "event_id": "affa6917-1796-44cb-99d6-f88ddf6f284f",
+      "title": "Israeli military warns of inbound missiles from Iran, says anti-missile defences active",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR",
+        "IL"
+      ],
+      "geo_keys": [
+        "IR",
+        "IL"
+      ]
+    },
+    {
+      "event_id": "094be817-8a3f-4c42-9e68-ea3b792a2e6d",
+      "title": "Danish PM Mette Frederiksen鈥檚 left-wing bloc wins election but falls short of majority",
+      "status": "updated",
+      "main_country": "DK",
+      "event_level": "country",
+      "region_tags": [
+        "DK"
+      ],
+      "geo_keys": [
+        "DK"
+      ]
+    },
+    {
+      "event_id": "3fd90f62-ab4a-471d-9f27-6a2069ebb859",
+      "title": "Rights group exposes North Korea鈥檚 forced labour scheme that reaps US$500 million annually",
+      "status": "updated",
+      "main_country": "KP",
+      "event_level": "country",
+      "region_tags": [
+        "KP",
+        "KR"
+      ],
+      "geo_keys": [
+        "KP",
+        "KR"
+      ]
+    },
+    {
+      "event_id": "667d6593-ff0f-47d3-a179-8a8711831971",
+      "title": "Cathay鈥檚 European services could offset Middle East losses, experts say",
+      "status": "updated",
+      "main_country": "HK",
+      "event_level": "city",
+      "region_tags": [
+        "HK"
+      ],
+      "geo_keys": [
+        "HK:1819729",
+        "HK"
+      ]
+    },
+    {
+      "event_id": "a28f451b-b414-4704-b6b9-4989e9a48249",
+      "title": "鈥楤e careful or I鈥檒l kill your family鈥? China mini-dramas featuring kids raise concerns",
+      "status": "updated",
+      "main_country": "CN",
+      "event_level": "country",
+      "region_tags": [
+        "CN"
+      ],
+      "geo_keys": [
+        "CN"
+      ]
+    },
+    {
+      "event_id": "a00cc4ee-bad6-4198-aa1d-057beb5f408c",
+      "title": "A missile launch pad on the seabed? Chinese simulation suggests it鈥檚 possible",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "b679069a-d118-4299-ba39-8bacf09ef664",
+      "title": "Anduril, Palantir developing Golden Dome missile shield's software, source says",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "3b735051-a053-4d95-88a2-d32735afa2e5",
+      "title": "Singapore furniture brand Castlery is opening its first US store in New York",
+      "status": "updated",
+      "main_country": "SG",
+      "event_level": "city",
+      "region_tags": [
+        "SG",
+        "US"
+      ],
+      "geo_keys": [
+        "SG:1880252",
+        "US:5125771",
+        "SG",
+        "US.NY"
+      ]
+    },
+    {
+      "event_id": "e51e0fcf-1116-4348-843e-ff86c5f5c01a",
+      "title": "Openreach taps Google AI to speed fibre rollout, cut emissions",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "87f31c2a-d801-41b1-b88f-4c17f0781756",
+      "title": "Red-hot Sinner overcomes Michelsen to reach Miami quarters",
+      "status": "updated",
+      "main_country": "US",
+      "event_level": "city",
+      "region_tags": [
+        "US"
+      ],
+      "geo_keys": [
+        "US:4164138"
+      ]
+    },
+    {
+      "event_id": "ffc0c205-99a7-4abe-89f2-f8334f7692ee",
+      "title": "Tiger returns to action at TGL Finals in Florida",
+      "status": "updated",
+      "main_country": "US",
+      "event_level": "admin1",
+      "region_tags": [
+        "US"
+      ],
+      "geo_keys": [
+        "US.FL"
+      ]
+    },
+    {
+      "event_id": "319277e9-0460-47fe-b1ed-9c744e310771",
+      "title": "CK Hutchison unit says Panama arbitration claim now tops $2 billion",
+      "status": "updated",
+      "main_country": "PA",
+      "event_level": "city",
+      "region_tags": [
+        "PA"
+      ],
+      "geo_keys": [
+        "PA:3703443"
+      ]
+    },
+    {
+      "event_id": "506c03ec-afc5-49a7-a8df-e3c637cd0d64",
+      "title": "Bridge Data Centres to invest up to S$5 billion in Singapore鈥檚 AI infrastructure",
+      "status": "updated",
+      "main_country": "SG",
+      "event_level": "city",
+      "region_tags": [
+        "SG"
+      ],
+      "geo_keys": [
+        "SG:1880252",
+        "SG"
+      ]
+    },
+    {
+      "event_id": "5f481e60-c049-4c4e-aec5-a39a3b4f7116",
+      "title": "SpaceX aims to file for IPO as soon as this week, The Information reports",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "6ca26f64-9066-43ae-b467-d7b7d24aafe8",
+      "title": "Oil prices drop more than 5% after Trump sends peace plan",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "2d644d40-4a26-4006-9bf5-42f9898a4edc",
+      "title": "Danish PM's left bloc leads election, but no majority",
+      "status": "updated",
+      "main_country": "DK",
+      "event_level": "country",
+      "region_tags": [
+        "DK"
+      ],
+      "geo_keys": [
+        "DK"
+      ]
+    },
+    {
+      "event_id": "5e43f68a-5109-427e-92f2-0851381fee75",
+      "title": "Ghana signs security partnership with the EU",
+      "status": "updated",
+      "main_country": "GH",
+      "event_level": "country",
+      "region_tags": [
+        "GH"
+      ],
+      "geo_keys": [
+        "GH"
+      ]
+    },
+    {
+      "event_id": "d784c8d4-52c8-43bf-91fb-550cdd296622",
+      "title": "US to deploy elite army brigade to Middle East: reports",
+      "status": "updated",
+      "main_country": "US",
+      "event_level": "country",
+      "region_tags": [
+        "US",
+        "IR"
+      ],
+      "geo_keys": [
+        "US",
+        "IR"
+      ]
+    },
+    {
+      "event_id": "ddd66440-7f4b-4fb1-9f8a-3b8e0529ff03",
+      "title": "Iran war pushes plastic packaging costs higher",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "bac92fb0-f852-417a-93c4-409bf36c19d9",
+      "title": "Meta ordered to pay $375 million over child exploitation in landmark verdict",
+      "status": "updated",
+      "main_country": "MX",
+      "event_level": "country",
+      "region_tags": [
+        "MX",
+        "US"
+      ],
+      "geo_keys": [
+        "MX",
+        "US.NM"
+      ]
+    },
+    {
+      "event_id": "04690da6-cfae-4850-a662-2624fbaa42cd",
+      "title": "Has the AFCON trophy been hidden in a military base in Senegal? No",
+      "status": "updated",
+      "main_country": "SN",
+      "event_level": "country",
+      "region_tags": [
+        "SN",
+        "MA"
+      ],
+      "geo_keys": [
+        "SN",
+        "MA"
+      ]
+    },
+    {
+      "event_id": "8f6b5867-d9a3-4a2d-a859-44b3c7b06896",
+      "title": "Hungary is 'the Kremlin's biggest agent in the EU', analyst says",
+      "status": "updated",
+      "main_country": "HU",
+      "event_level": "country",
+      "region_tags": [
+        "HU",
+        "RU",
+        "FR",
+        "UA"
+      ],
+      "geo_keys": [
+        "HU",
+        "RU:524901",
+        "FR",
+        "UA"
+      ]
+    },
+    {
+      "event_id": "18f52541-c957-4545-a2e8-0172794e01ad",
+      "title": "US proposes 15-point plan as Iran opens Hormuz to 'non-hostile' oil vessels",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "396a664a-283f-498f-8812-79dfd2c6c6f5",
+      "title": "Denmark's Frederiksen weakened by election setback, coalition talks loom",
+      "status": "updated",
+      "main_country": "DK",
+      "event_level": "country",
+      "region_tags": [
+        "DK"
+      ],
+      "geo_keys": [
+        "DK"
+      ]
+    },
+    {
+      "event_id": "84e603fb-39da-4db1-97b4-9e055df542c0",
+      "title": "Merck nears $6bn biotech deal to boost cancer drug pipeline",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "296ce1f5-a5de-4632-8a1f-040e5c05a187",
+      "title": "Investors snap up debt to finance Electronic Arts鈥?$55bn take-private",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "c9985bd2-d8b8-48f7-8e06-f99d896f6054",
+      "title": "SEC raises questions over rating agency behind private credit boom",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "39fc8e2a-01fb-4cca-9c91-37be79b10d7e",
+      "title": "Ares limits withdrawals from $10.7bn private credit fund",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "19242942-9c08-42cc-bc52-f129aa2bc80a",
+      "title": "Trump鈥檚 Armageddon-Taco shuffle",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "ef658ea4-297f-4124-89bf-63010ae5eef0",
+      "title": "Palantir turns poisonous on the midterms campaign trail",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "2d489ac3-9c3f-4d82-9dd5-f2c32069dfee",
+      "title": "Iran says 鈥榥on-hostile鈥?ships can transit Strait of Hormuz",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "city",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR:112931",
+        "IR"
+      ]
+    },
+    {
+      "event_id": "94b50a81-f522-4aef-a411-fd02abb23715",
+      "title": "US oil price tumbles in latest bout of market volatility",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "0b81d01e-e093-4c1e-b44b-2febf0de3893",
+      "title": "US to deploy more troops even as Trump praises Iran talks",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "city",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR:112931",
+        "IR"
+      ]
+    },
+    {
+      "event_id": "22291b5b-1c17-46f2-828b-0fb3c2962f66",
+      "title": "鍥介檯鏂伴椈鏃╃煡閬撲辅浼婃湕绉板嚮涓編鍐汧-35鎴樻満 浠ョО灏嗏€滄殏鍋溾€濈┖琚紛鏈楄兘婧愯鏂?- 鍗庡０鍦ㄧ嚎",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "c8ffe32d-1254-434a-b234-a8c78203da4e",
+      "title": "鍥介檯鏂伴椈鏃╃煡閬撲辅缇庡悜涓笢澧炴淳鏁板崈澹叺 鍐茬獊浠ユ潵浠ヨ壊鍒楄秴4000浜洪€佸尰 - 鏂版氮璐㈢粡",
+      "status": "updated",
+      "main_country": "IL",
+      "event_level": "country",
+      "region_tags": [
+        "IL"
+      ],
+      "geo_keys": [
+        "IL"
+      ]
+    },
+    {
+      "event_id": "7ef8dcbe-be2c-41cd-836f-270934b417fe",
+      "title": "鏂板崕绀捐瘎鍑?025骞村浗闄呭崄澶ф柊闂?- 鏂板崕缃?,
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "d4e883f4-b527-4015-ab1f-b8eb53c81a49",
+      "title": "TF鍏徃涓轰綍榧撳姳缁冧範鐢熶娇鐢ㄧ數璇濇墜琛ㄥ叧娉ㄥ浗闄呮柊闂伙紵 - 鏂版氮璐㈢粡",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "4ce8006a-55df-4306-9ccc-cb56431c1e0b",
+      "title": "涓滆タ闂綔鍚村＋瀛橈細鍗氶硨浜氭床璁哄潧濡備綍濉戦€犲叡鍚屾湭鏉ワ紵 - jiaodong.net",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "cd0d6e4e-2e69-4653-ab69-e5d5ecbf458f",
+      "title": "缇庡浗涓€鐐兼补鍘傚彂鐢熺垎鐐? 鍥介檯 - 閫熻惫鏂伴椈缃?,
+      "status": "updated",
+      "main_country": "US",
+      "event_level": "country",
+      "region_tags": [
+        "US"
+      ],
+      "geo_keys": [
+        "US"
+      ]
+    },
+    {
+      "event_id": "750840f8-d601-48fe-b77e-c5f134e8d4ca",
+      "title": "鍥介檯鏂伴椈鏃╃煡閬撲辅浼婃柟閲嶇敵缁撴潫鎴樹簤鏉′欢 缇庡啗绾?000浜哄皢璧翠腑涓?- 21璐㈢粡",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "f7882f7e-648a-418e-a8d1-764495bed078",
+      "title": "NHS waited two days before raising alarm about meningitis outbreak",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "71be54d9-1f8b-4072-8239-1a73dae83cf0",
+      "title": "The Papers: 'US troops gather in Gulf' and 'Strictly No Baftas'",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "2c5cb642-0678-48db-a2c4-d08040b7b308",
+      "title": "Oil at $150 will trigger global recession, says boss of financial giant BlackRock",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "a331fe51-b173-4601-96fd-fc9a3e5217aa",
+      "title": "Geo smoke validation 8af93064738d437f Canada officials in London discuss manufacturing",
+      "status": "updated",
+      "main_country": "CA",
+      "event_level": "city",
+      "region_tags": [
+        "CA"
+      ],
+      "geo_keys": [
+        "CA:6058560",
+        "CA"
+      ]
+    },
+    {
+      "event_id": "3acc6ad0-5657-4a86-88e8-dca6bfcddb8c",
+      "title": "Man Utd retain new stadium dream for 2035 Women's World Cup",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2643123"
+      ]
+    },
+    {
+      "event_id": "ce58ac15-c4e8-4fd7-8706-71be53fc9493",
+      "title": "Russo settles thrilling Champions League first-leg for Arsenal",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2653265",
+        "GB"
+      ]
+    },
+    {
+      "event_id": "af7a4184-71ee-4898-adf5-f654ecc61892",
+      "title": "Bairstow criticises level of care shown by England regime",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "country",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB"
+      ]
+    },
+    {
+      "event_id": "a8952200-ad45-48f2-a390-528733498f19",
+      "title": "Salah to leave Liverpool at end of season",
+      "status": "updated",
+      "main_country": "EG",
+      "event_level": "country",
+      "region_tags": [
+        "EG"
+      ],
+      "geo_keys": [
+        "EG"
+      ]
+    },
+    {
+      "event_id": "5723de0a-fa7f-4309-916a-bf18a4282e0a",
+      "title": "Women's game needs more respect - Bompastor riled by Chelsea's disallowed goal",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2653265"
+      ]
+    },
+    {
+      "event_id": "91ee630a-3d91-4ebe-b41b-93f2577b7093",
+      "title": "'It wasn't meant to end like this' - Salah exit tough but inevitable",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "762889c9-1c5b-4832-8c1e-366a8b6a03a8",
+      "title": "Is 'baby brain' real?",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "abdc7d91-f16d-4b03-8397-5b16e2e3d79d",
+      "title": "Are US-Iran Talks Actually Happening?",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "1a81e9f4-890b-44f3-b5e8-b86cb7bddc98",
+      "title": "Al Fayed survivors frustrated at 'sceptism' about trafficking inquiry",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "06a962bb-bbd7-4a9d-80c9-ff9a4b445ce2",
+      "title": "Replacement ambulances delivered after London arson attack",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2643743"
+      ]
+    },
+    {
+      "event_id": "41b957be-b84b-4f19-aa29-93f86bffb85e",
+      "title": "Journalists at Australia's national broadcaster begin 24-hour strike over pay",
+      "status": "updated",
+      "main_country": "AU",
+      "event_level": "country",
+      "region_tags": [
+        "AU"
+      ],
+      "geo_keys": [
+        "AU"
+      ]
+    },
+    {
+      "event_id": "781a8afe-deb1-43ea-b1c3-ee159453109c",
+      "title": "Sturgeon denies 'obsession' with gender reforms when Scotland's first minister",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "admin1",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB.SCT"
+      ]
+    },
+    {
+      "event_id": "e78f9290-491f-4ea0-8d46-b0600e8597b6",
+      "title": "German outcry over deep fake porn targeting actress prompts bid to change law",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "0fda8a36-bb8b-44e9-9a73-5b2a8ed321cf",
+      "title": "Transgender girls told to leave Girlguiding groups by September",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "24ecba1c-52e4-468d-8ae0-bd0b7b32fd45",
+      "title": "What are heat pumps and how much do they cost?",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "bd2bb311-4915-420d-9431-6d90f6d3f6cd",
+      "title": "How Scotland reached the World Cup - told by those who made it happen",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "admin1",
+      "region_tags": [
+        "GB",
+        "DK"
+      ],
+      "geo_keys": [
+        "GB.SCT",
+        "DK"
+      ]
+    },
+    {
+      "event_id": "30b0524f-a52b-4a79-9c0f-d955c2bfb3d8",
+      "title": "Bafta TV Award nominations revealed as Adolescence leads field",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "eec996d0-bc77-4610-a401-1960b8d06313",
+      "title": "What happened in the seconds before Air Canada plane crashed at LaGuardia",
+      "status": "updated",
+      "main_country": "CA",
+      "event_level": "country",
+      "region_tags": [
+        "CA",
+        "US"
+      ],
+      "geo_keys": [
+        "CA",
+        "US.NY"
+      ]
+    },
+    {
+      "event_id": "fb69ed35-54fd-4e78-acc8-6b1e19f03026",
+      "title": "Iran war shows norms of international conflicts have been overturned",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "4743a078-479f-4d1b-9634-fe7ed6cecbaa",
+      "title": "Israel says it will take control of large buffer zone in southern Lebanon",
+      "status": "updated",
+      "main_country": "IL",
+      "event_level": "country",
+      "region_tags": [
+        "IL",
+        "LB"
+      ],
+      "geo_keys": [
+        "IL",
+        "LB"
+      ]
+    },
+    {
+      "event_id": "3b6c4221-f923-4b11-8787-4b685976691c",
+      "title": "Everyday life in Asia is being upended by Iran war fuel crisis",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "1c5d77f8-8167-467e-8d0a-43d88d66d9fd",
+      "title": "What Iranians make of the possibility of talks to end the war",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "b760908c-2a11-4c5d-9dd3-f73249b56cfa",
+      "title": "Prospect of US-Iran talks puts Netanyahu under pressure",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR",
+        "IL"
+      ],
+      "geo_keys": [
+        "IR",
+        "IL"
+      ]
+    },
+    {
+      "event_id": "2ebbb857-0aa3-46c8-8505-f08d87a44386",
+      "title": "Bridgerton puts female romance at heart of season five",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "618d3f48-f9e0-4009-86b3-8a7614a37f7c",
+      "title": "Reform UK's leader in Scotland denies homophobia after apologising for joke",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "admin1",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB.SCT",
+        "GB"
+      ]
+    },
+    {
+      "event_id": "3fd75136-e90f-4cc6-995e-3bec95162edd",
+      "title": "Pilots killed in LaGuardia plane crash named",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "226d4432-1079-4034-aa53-1d44d287eac6",
+      "title": "Social media bans and digital curfews to be trialled on UK teenagers",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "country",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB"
+      ]
+    },
+    {
+      "event_id": "cdf97f5c-3603-463d-b78b-15f73b173912",
+      "title": "'Truly magical woman': Tributes to Married at First Sight's Mel Schilling",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "cc008ecc-1f64-4245-858d-66fd3f6ece3a",
+      "title": "Russia launches 948 drones at Ukraine in largest attack over 24-hour period",
+      "status": "updated",
+      "main_country": "RU",
+      "event_level": "country",
+      "region_tags": [
+        "RU",
+        "UA"
+      ],
+      "geo_keys": [
+        "RU",
+        "UA"
+      ]
+    },
+    {
+      "event_id": "8cdd8999-9935-40f3-a294-e4a374bac647",
+      "title": "Premier League great Salah will leave lifetime of memories",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2644210"
+      ]
+    },
+    {
+      "event_id": "7ef72e29-367a-459c-957d-062a8ab5ac96",
+      "title": "Reeves plans energy bill help for those 'who need it most'",
+      "status": "updated",
+      "main_country": "IL",
+      "event_level": "country",
+      "region_tags": [
+        "IL",
+        "IR"
+      ],
+      "geo_keys": [
+        "IL",
+        "IR"
+      ]
+    },
+    {
+      "event_id": "a661a881-0ac1-4fe2-967f-8ae0f7603f8e",
+      "title": "Meta told to pay $375m for misleading users over child safety",
+      "status": "updated",
+      "main_country": "MX",
+      "event_level": "country",
+      "region_tags": [
+        "MX",
+        "US"
+      ],
+      "geo_keys": [
+        "MX",
+        "US.NM"
+      ]
+    },
+    {
+      "event_id": "a3c2aec2-4f65-4829-a72e-a094913fdd52",
+      "title": "Lyse Doucet: Small window open for US-Iran talks, but swift end to war still unlikely",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "city",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR:112931",
+        "IR"
+      ]
+    },
+    {
+      "event_id": "c41290dc-61ef-4dfa-baf4-5c9ff5996c00",
+      "title": "Villagers 'proud' after overturning council's crackdown on second homes",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "admin1",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB.WLS"
+      ]
+    },
+    {
+      "event_id": "4a9e0f9f-4031-4c12-8d97-f4eddcee9abc",
+      "title": "Oil traders bet millions ahead of Trump's Iran talks post",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "a8e20ba2-0541-44d9-b0c9-fc444bdac8f1",
+      "title": "First-time buyers hit as mortgage rates keep rising",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "62c989e7-c6d1-4cdc-9d88-2c64ee77d9c7",
+      "title": "Police told 拢900k Trump costs will not be paid",
+      "status": "updated",
+      "main_country": "CA",
+      "event_level": "city",
+      "region_tags": [
+        "CA"
+      ],
+      "geo_keys": [
+        "CA:6182962"
+      ]
+    },
+    {
+      "event_id": "d67b7a36-43d8-4281-8930-49e1893d408e",
+      "title": "Meningitis vaccines offered to some Year 11 pupils",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "c5f8f297-0a7d-41e9-942e-947ef2d1e98e",
+      "title": "Snow forecast for some as UK braces for cold snap",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "country",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB"
+      ]
+    },
+    {
+      "event_id": "b71b7e79-87a3-4576-ad05-872826e6e117",
+      "title": "PSG request to move match before Liverpool tie",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2644210"
+      ]
+    },
+    {
+      "event_id": "82864341-7930-4348-8328-1397a5dcd5f0",
+      "title": "Woods to return from 13 months out in TGL finale",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "b32ed360-73f6-45b2-84db-ad58b79c413b",
+      "title": "Shop owner gets 拢100 and apology 15 years after student stole sign",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "2cb9074f-f7e5-47bf-bfda-5060d6718678",
+      "title": "Coral, salmon or... Irn Bru? Scotland set to look pretty in 'pink' at World Cup",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "admin1",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB.SCT"
+      ]
+    },
+    {
+      "event_id": "aef0d5b6-fca1-4719-bd09-5c99191dc2d1",
+      "title": "Geo smoke validation 3a79fa49166b437e Canada officials in London discuss manufacturing",
+      "status": "updated",
+      "main_country": "CA",
+      "event_level": "city",
+      "region_tags": [
+        "CA"
+      ],
+      "geo_keys": [
+        "CA:6058560",
+        "CA"
+      ]
+    },
+    {
+      "event_id": "c2c8fcf0-e59a-4f5f-984a-7c8f3a60338e",
+      "title": "Is the three-week Premier League break good for your side?",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "a2286471-2b8a-46f9-bece-82ae157eed2d",
+      "title": "More sightings of the Northern Lights with stunning bright colours",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "country",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB"
+      ]
+    },
+    {
+      "event_id": "0fd05925-e2e2-41dc-8a09-f3fd0c171890",
+      "title": "Has Newey Aston Martin team boss project failed? F1 Q&A",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "0952acd6-481a-407e-a11e-3e1f3e21d945",
+      "title": "Football's great entertainers - ranking the biggest showboaters",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "76ac7b10-338d-4777-817d-64c48e440576",
+      "title": "Sinner surpasses Djokovic's Masters 1000 record",
+      "status": "updated",
+      "main_country": "US",
+      "event_level": "city",
+      "region_tags": [
+        "US"
+      ],
+      "geo_keys": [
+        "US:4164138"
+      ]
+    },
+    {
+      "event_id": "18f7254b-617e-4281-b43b-1695a63af252",
+      "title": "Sexism at football - a problem that isn't going away",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "bb439c6b-9c00-452f-9f12-f28e54f33336",
+      "title": "Dirt pitches, dodging dogs and choosing Chelsea - the making of Estevao",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2653265"
+      ]
+    },
+    {
+      "event_id": "abe45f31-8fed-43dc-8d81-4f9b76efec67",
+      "title": "Police investigating possible Iran link to attack on Jewish charity ambulances",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "b2322656-cc05-459c-948a-6008664bb313",
+      "title": "Vet prescription fees to be capped at 拢21",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "country",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB"
+      ]
+    },
+    {
+      "event_id": "63bd0bf2-5e3a-4c6f-8704-f07229d2f8e8",
+      "title": "Cuba's mothers-to-be prepare to give birth in a country plunged into darkness",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "fce1c798-6f9b-4df7-a04b-20d3094ce6e8",
+      "title": "UK's transplant system was world-leading - now it lags behind other Western nations",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "country",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB"
+      ]
+    },
+    {
+      "event_id": "afb8d9cd-0068-4154-bc1a-97d056d3060e",
+      "title": "More Australian beef headed for Europe under new EU trade deal",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "3c8e2c4f-99a6-46ef-85db-f90463a1f8b5",
+      "title": "Oil back above $100 as conflicting reports emerge on US-Iran talks",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "f153f0b0-e838-4a32-9d5f-fd05f110879b",
+      "title": "P3 test 26a27a46 Beijing Guangdong Tokyo",
+      "status": "updated",
+      "main_country": "CN",
+      "event_level": "city",
+      "region_tags": [
+        "CN",
+        "JP"
+      ],
+      "geo_keys": [
+        "CN:1816670",
+        "JP:1850147"
+      ]
+    },
+    {
+      "event_id": "18ae9bc1-ebfc-4fd6-bcf4-66b159977ddc",
+      "title": "Ultimatums, diplomacy and a trip to Graceland as Trump eyes a deal with Iran",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR",
+        "US"
+      ],
+      "geo_keys": [
+        "IR",
+        "US"
+      ]
+    },
+    {
+      "event_id": "00521108-9eb9-4f11-a191-087a1301ce37",
+      "title": "Chris Mason: Reeves to set out principles on who might get energy bills support 鈥?and who won't",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "c768d392-2759-4d4d-90ff-33309b3b2f94",
+      "title": "Jury orders Cosby to pay $19m to ex-waitress after finding he abused her in 1972",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "d787ae1e-bbca-4b7d-b3ec-cf2af72761c6",
+      "title": "Sabalenka and Gauff win in Miami as camera causes concern for umpire",
+      "status": "updated",
+      "main_country": "US",
+      "event_level": "city",
+      "region_tags": [
+        "US"
+      ],
+      "geo_keys": [
+        "US:4164138"
+      ]
+    },
+    {
+      "event_id": "5dde5915-1465-4b14-acf8-3ce0ec4b693c",
+      "title": "Real talk is nonsense but I may coach again - Klopp",
+      "status": "updated",
+      "main_country": "ES",
+      "event_level": "city",
+      "region_tags": [
+        "ES"
+      ],
+      "geo_keys": [
+        "ES:3117735"
+      ]
+    },
+    {
+      "event_id": "de28742c-b008-4f10-82bf-7e900807d4b3",
+      "title": "Newcastle v the system - is Saudi 2030 vision unrealistic?",
+      "status": "updated",
+      "main_country": "AU",
+      "event_level": "city",
+      "region_tags": [
+        "AU",
+        "SA"
+      ],
+      "geo_keys": [
+        "AU:2155472",
+        "SA"
+      ]
+    },
+    {
+      "event_id": "b76dc5f1-e40b-40d1-a9cf-2cd4ed28ac62",
+      "title": "Cooper accused of dropping Bosnia-Herzegovina player before Wales tie",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "admin1",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB.WLS"
+      ]
+    },
+    {
+      "event_id": "9ca2f2f9-916f-4161-b009-c59b10df771e",
+      "title": "Foden final appearance felt like a 'charity' substitution - Rooney",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2643123",
+        "GB"
+      ]
+    },
+    {
+      "event_id": "27dbdc19-be3b-4c64-91e4-2dc54f64f202",
+      "title": "McCullum and Key very lucky to survive Ashes review - Vaughan",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "country",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB"
+      ]
+    },
+    {
+      "event_id": "fb03b7c4-3c4e-4802-aae4-9f95cc4bd663",
+      "title": "Have Chelsea progressed under Rosenior? Analysing his Blues tenure",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2653265"
+      ]
+    },
+    {
+      "event_id": "e1209953-5a10-4e36-b74b-8241a9a88c15",
+      "title": "Americanswers鈥?on 5 Live! Trump claims Iran wants to \"make a deal\" to end the war",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "9d75e34c-38ea-43e7-820f-b00d70e27fa3",
+      "title": "Has Trump Backed Down On Iran Threat?",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "d13666d8-8726-4172-ab32-550757e69be5",
+      "title": "Burnham should be allowed to stand as an MP, says Nandy",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2643123"
+      ]
+    },
+    {
+      "event_id": "36ed8978-5094-444b-9655-b482389763e1",
+      "title": "Private investigator denies 'switching sides' in Mail publisher case",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "136940a7-e209-4294-98eb-4753f8ffcd5b",
+      "title": "Hong Kong government employee denies ordering surveillance of UK dissidents",
+      "status": "updated",
+      "main_country": "HK",
+      "event_level": "city",
+      "region_tags": [
+        "HK",
+        "GB"
+      ],
+      "geo_keys": [
+        "HK:1819729",
+        "HK",
+        "GB:2643743",
+        "GB"
+      ]
+    },
+    {
+      "event_id": "0b54c0d6-960d-4f6c-a84a-ea14206d03df",
+      "title": "Steve Bruce's grandson died after 'unsafe sleep position'",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "435fe325-a6c4-476d-b38b-4c89f80eb551",
+      "title": "British supplement maker Huel bought by Danone for 鈧?bn",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "a799d631-2469-4c56-ae77-c8f282531e6f",
+      "title": "How a YouTuber used a fake live stream to cover up the murder of his pregnant partner",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "9e4cd139-187c-4391-9b0e-b880db79ea8d",
+      "title": "UK universities flock to India - but will they succeed?",
+      "status": "updated",
+      "main_country": "IN",
+      "event_level": "country",
+      "region_tags": [
+        "IN",
+        "GB"
+      ],
+      "geo_keys": [
+        "IN",
+        "GB"
+      ]
+    },
+    {
+      "event_id": "2575d8a0-e70d-4805-ab08-adc739a0d86d",
+      "title": "The Papers: 'Trump blinks first' and 'horrific' attack on Jewish charity ambulances",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB",
+        "IR"
+      ],
+      "geo_keys": [
+        "GB:2643743",
+        "IR"
+      ]
+    },
+    {
+      "event_id": "f5b68506-678b-4de8-9d69-f5d16db5ed4e",
+      "title": "'Shocking but not unexpected': Jewish community reacts to ambulance attack",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2643743"
+      ]
+    },
+    {
+      "event_id": "9842f910-6540-4f3d-a1a3-9ae4f6210cb5",
+      "title": "Slovenia becomes first EU country to introduce fuel rationing",
+      "status": "updated",
+      "main_country": "SI",
+      "event_level": "country",
+      "region_tags": [
+        "SI"
+      ],
+      "geo_keys": [
+        "SI"
+      ]
+    },
+    {
+      "event_id": "0011e1d5-d910-4d04-85e4-90989cb08d88",
+      "title": "Could Iranian missiles reach London and Paris?",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB",
+        "FR",
+        "IR"
+      ],
+      "geo_keys": [
+        "GB:2643743",
+        "FR:2988507",
+        "IR"
+      ]
+    },
+    {
+      "event_id": "5c1105ff-b73e-4f22-8a8a-3ea6983bf2be",
+      "title": "A committed pharmacist and a homesick blogger - the Iranian civilians killed by the war",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "a01ce001-7f11-4408-8ec5-60e908232d57",
+      "title": "Colombian military plane with 125 people crashes",
+      "status": "updated",
+      "main_country": "CO",
+      "event_level": "country",
+      "region_tags": [
+        "CO"
+      ],
+      "geo_keys": [
+        "CO"
+      ]
+    },
+    {
+      "event_id": "053bea9f-8754-46c5-ac15-4a1ed7191c27",
+      "title": "US Senate confirms Markwayne Mullin as homeland security chief",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "cf48b0eb-fce6-4f13-bfd8-348741fa07e7",
+      "title": "Referendum defeat leaves Italy's Meloni looking more vulnerable",
+      "status": "updated",
+      "main_country": "IT",
+      "event_level": "country",
+      "region_tags": [
+        "IT"
+      ],
+      "geo_keys": [
+        "IT"
+      ]
+    },
+    {
+      "event_id": "c7d49e08-c798-4eab-8bb8-e1478ba9071f",
+      "title": "UK must back North Sea oil and gas drilling, says trade body",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "country",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB"
+      ]
+    },
+    {
+      "event_id": "82fd6f1e-d4e5-4c31-aa23-9ff5246a865c",
+      "title": "Heat pumps for all new homes and plug-in solar in green tech drive",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "606495e4-137f-4358-8fd6-5d03684f283a",
+      "title": "Inside the alleged Russian operation to trigger anti-government protests in Angola",
+      "status": "updated",
+      "main_country": "AO",
+      "event_level": "country",
+      "region_tags": [
+        "AO"
+      ],
+      "geo_keys": [
+        "AO"
+      ]
+    },
+    {
+      "event_id": "28ebcbfe-ba5b-416a-b02b-cb3a0fb13da5",
+      "title": "Arson attack on Jewish charity ambulances investigated by counter-terror police",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "ce9d739d-f430-4fe6-91d9-3700d6b61d50",
+      "title": "Watch: How the deadly LaGuardia Airport crash unfolded",
+      "status": "updated",
+      "main_country": "US",
+      "event_level": "city",
+      "region_tags": [
+        "US"
+      ],
+      "geo_keys": [
+        "US:4229476",
+        "US.NY"
+      ]
+    },
+    {
+      "event_id": "18ac05ad-d7d9-402c-ad2a-e3b8bb3ca367",
+      "title": "'Like the plane got cut in half': LaGuardia crash that killed two pilots now under investigation",
+      "status": "updated",
+      "main_country": "CA",
+      "event_level": "country",
+      "region_tags": [
+        "CA",
+        "US"
+      ],
+      "geo_keys": [
+        "CA",
+        "US.NY"
+      ]
+    },
+    {
+      "event_id": "25ffbed7-6e70-415a-9c33-b7165e2f540b",
+      "title": "Royal Mail staff say they were told to hide post to look like delivery targets met",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "a1c1abec-269c-4588-b0fe-5adfdfd3bc00",
+      "title": "Spurs offer condolences to Tudor after father's death",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2635608"
+      ]
+    },
+    {
+      "event_id": "232de371-22ea-4b84-ac7d-d35c3eec9a00",
+      "title": "US' and Iran's options for ending war narrow the longer it goes on",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "4f0afae2-a5b4-4af1-acea-620518a11ae9",
+      "title": "Community Shield moved to Cardiff for Weeknd gigs",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2653822",
+        "GB:2634549"
+      ]
+    },
+    {
+      "event_id": "d9d2fe5a-8d74-4d5a-b789-c7769e81ac89",
+      "title": "Sunderland not very good compared with Newcastle - Gordon",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2636531",
+        "GB:2641673"
+      ]
+    },
+    {
+      "event_id": "24fa6808-4d02-416f-a3dc-daad3e8e12f9",
+      "title": "Anthony Hopkins teases new film in 'golden land' of Dylan Thomas",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "eb47ea17-e254-47a3-8d09-d3f330636157",
+      "title": "'I'm a shell of my former self' - how long Covid's effects are still being felt six years on",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "d2af5d27-571e-4755-88fc-6dda7f42c874",
+      "title": "Trump U-turn on Hormuz could be due to 'pressure' from Gulf nations",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "e057e1d7-c5ac-4047-abd6-3e37c4951e36",
+      "title": "Italy divided over Meloni government, referendum exit polls show",
+      "status": "updated",
+      "main_country": "IT",
+      "event_level": "country",
+      "region_tags": [
+        "IT"
+      ],
+      "geo_keys": [
+        "IT"
+      ]
+    },
+    {
+      "event_id": "2893d3ef-cea5-42de-ae26-b3849b83775c",
+      "title": "UK police probe anti-Semitic attack on Jewish ambulances",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2643743",
+        "GB"
+      ]
+    },
+    {
+      "event_id": "1cb051ca-578a-4ad3-a707-65226eae4801",
+      "title": "Red Command: Brazil's most powerful criminal organisation",
+      "status": "updated",
+      "main_country": "BR",
+      "event_level": "city",
+      "region_tags": [
+        "BR"
+      ],
+      "geo_keys": [
+        "BR:3451190",
+        "BR"
+      ]
+    },
+    {
+      "event_id": "96d2dc6f-3b42-4510-a585-62c7b0e23696",
+      "title": "Planet is storing more heat than it can release, UN warns",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "3a25a221-d271-4d73-9b5f-93446454a750",
+      "title": "Iran conflict prompts questions about China鈥檚 export power amid fractured supply chains",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR",
+        "CN"
+      ],
+      "geo_keys": [
+        "IR",
+        "CN"
+      ]
+    },
+    {
+      "event_id": "19c45e4a-0c33-47ad-9d28-529d88eadfde",
+      "title": "Not like Venezuela: why Iran is likely to survive US-Israeli strikes",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR",
+        "VE"
+      ],
+      "geo_keys": [
+        "IR",
+        "VE"
+      ]
+    },
+    {
+      "event_id": "688095eb-1c64-432a-bb15-8988a3282287",
+      "title": "White eagles and Persian cats: Chinese AI satire of US war on Iran goes viral",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR",
+        "CN",
+        "IL"
+      ],
+      "geo_keys": [
+        "IR",
+        "CN",
+        "IL"
+      ]
+    },
+    {
+      "event_id": "98511eda-a226-4c74-87a2-eb4bef416a7e",
+      "title": "Tencent adds ClawBot plug-in to WeChat amid OpenClaw boom and privacy warnings",
+      "status": "updated",
+      "main_country": "CN",
+      "event_level": "country",
+      "region_tags": [
+        "CN"
+      ],
+      "geo_keys": [
+        "CN"
+      ]
+    },
+    {
+      "event_id": "aace5185-bc80-43d9-9383-7eb1cef7f305",
+      "title": "What if US ground forces march into Iran? Chinese experts weigh the risks",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "city",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR:112931",
+        "IR"
+      ]
+    },
+    {
+      "event_id": "c1a401e2-3000-4289-b3d9-3abc04e0ff69",
+      "title": "Three people arrested for illegally setting off fireworks in Ghim Moh",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "48b7336b-186f-4e7c-9e27-a564e3597018",
+      "title": "Alphabet's Wing to start drone delivery in San Francisco Bay Area",
+      "status": "updated",
+      "main_country": "US",
+      "event_level": "city",
+      "region_tags": [
+        "US"
+      ],
+      "geo_keys": [
+        "US:5391959"
+      ]
+    },
+    {
+      "event_id": "3ba40f3a-cea0-4e97-ad5a-0c3d2706b6ca",
+      "title": "Olympic champion Hassan pulls out of London Marathon with Achilles injury",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2643743"
+      ]
+    },
+    {
+      "event_id": "a47937a5-2cb7-4e98-96e1-05842a18d91b",
+      "title": "McCullum to continue as England head coach, says ECB",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "country",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB"
+      ]
+    },
+    {
+      "event_id": "024885ec-9740-4e09-b83f-a72ddae57082",
+      "title": "Oil slides, stocks climb on Trump's Iran reprieve",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "7844c3b0-2bf6-45d4-8f7c-b52325c646e0",
+      "title": "Netanyahu is gambling with Israel鈥檚 future",
+      "status": "updated",
+      "main_country": "IL",
+      "event_level": "country",
+      "region_tags": [
+        "IL"
+      ],
+      "geo_keys": [
+        "IL"
+      ]
+    },
+    {
+      "event_id": "f3afd170-0222-4cc9-861e-ccf4222b8740",
+      "title": "Markets rebound after Donald Trump postpones attack on Iranian energy",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "city",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR:112931"
+      ]
+    },
+    {
+      "event_id": "f00976e0-24ae-4ae6-b1b8-3c17c293c680",
+      "title": "Trump鈥檚 Iran playbook was written in the 1980s",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "city",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR:112931",
+        "IR"
+      ]
+    },
+    {
+      "event_id": "53d3bd5b-078b-4f49-92af-a77830f5bd80",
+      "title": "The regime 鈥榗aravans鈥?keeping control of Iran鈥檚 streets",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR",
+        "IL"
+      ],
+      "geo_keys": [
+        "IR",
+        "IL"
+      ]
+    },
+    {
+      "event_id": "1a77e81e-6880-416b-a7e9-941bb47a1891",
+      "title": "Trump hails 鈥榩roductive鈥?talks with Iran on ending war",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "b3f8b18e-6298-48f1-af48-4030c4b27688",
+      "title": "Ex-teacher accused of Edinburgh school abuse found guilty of sex attack in South Africa",
+      "status": "updated",
+      "main_country": "ZA",
+      "event_level": "city",
+      "region_tags": [
+        "ZA",
+        "GB"
+      ],
+      "geo_keys": [
+        "ZA:3369157",
+        "GB:2650225",
+        "ZA"
+      ]
+    },
+    {
+      "event_id": "febee06d-93c6-49a8-8a2f-f2a828637544",
+      "title": "Why in-form Fitzpatrick's game puts him among Masters favourites",
+      "status": "updated",
+      "main_country": "FR",
+      "event_level": "city",
+      "region_tags": [
+        "FR"
+      ],
+      "geo_keys": [
+        "FR:2972191"
+      ]
+    },
+    {
+      "event_id": "ca484cfe-b36e-4bbe-956d-7040dc9c91ce",
+      "title": "Trump says 'good' talks ongoing with Iran - but offers few details",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "970e6133-eac4-4403-b6ee-22da4dabe4cb",
+      "title": "鍥介檯鏂伴椈鐪间辅楂樺競鏃╄嫍璁跨編鏋佸姏绀哄ソ 閫佸嚭730浜跨編鍏冩姇璧勨€滃ぇ绀尖€濆埌搴曞浘鍟ワ紵 - 鏂版氮璐㈢粡",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "b3790191-7685-42b3-9f89-29476137ac79",
+      "title": "鍙ゅ反鍐嶆鍙戠敓鍏ㄥ浗鑼冨洿鏂數- 鍥介檯 - 閫熻惫鏂伴椈缃?,
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "ef4613ab-097b-439d-bdba-520d7bfcdf5d",
+      "title": "椹婚嚋灞辨€婚浜嬮檲鏃ュ姜鍑哄腑銆婂浗闄呮柊闂汇€嬪浗闄呭闄㈢23鏈熷紑鐝华寮?- mfa.gov.cn",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "50c759e8-e1e6-4a58-81e3-bfe846efaac5",
+      "title": "12宀佺敺鍥㈢敤鐢佃瘽鎵嬭〃鑱婂浗闄呮柊闂伙紝杩欐槸鍋跺儚鍏绘垚鏂版€濊矾锛?- 鏂版氮缃?,
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "ebcf99ea-e21a-4f75-b5a4-3396a2d7359d",
+      "title": "鍥介檯鏂伴椈鏃╃煡閬撲辅浼婃湕鎻?椤光€滄儵缃氣€濆洖搴旂編濞佽儊 鎷夊叡浣撳嘲浼氬瑷€瑕佹眰鍋滄灏侀攣鍙ゅ反 - 21璐㈢粡",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "8e9bfb4a-aa75-462a-a714-5a1ace1283a1",
+      "title": "Oil falls and shares rebound after Trump says talks have been held to end war - BBC",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "2ca5bcbc-60d4-4bc2-91fe-99ecf1e7452b",
+      "title": "Iran vows to destroy Middle East water and energy facilities if US attacks power plants | US-Israel war on Iran - The Guardian",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR",
+        "IL"
+      ],
+      "geo_keys": [
+        "IR",
+        "IL"
+      ]
+    },
+    {
+      "event_id": "fa71fc66-09b6-4656-98bd-5e14b34bb8e8",
+      "title": "Live updates: Iran war news, Trump delays strikes on Iranian power plants after 鈥榲ery good鈥?talks with Tehran - CNN",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "city",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR:112931",
+        "IR"
+      ]
+    },
+    {
+      "event_id": "ee05317e-2ccc-4575-9cef-76631392aca0",
+      "title": "'Something Big Is Happening': Mystery Of A $2 Trillion Metals Wipeout - NDTV",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "b6cf679b-52e2-478e-8665-ea2f29d63d53",
+      "title": "US-Iran war latest: Trump says 鈥榳e鈥檒l keep bombing our little hearts out鈥?if talks fail after Tehran denies contact - The Independent",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "city",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR:112931",
+        "IR"
+      ]
+    },
+    {
+      "event_id": "fba2a8be-479e-4d7c-b261-d50bc6a5d2ec",
+      "title": "寮€濮嬫帹鐞嗗惂4",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "a5514d68-b838-43fb-a32a-be8ac9a4c574",
+      "title": "閭撳嚡鏂板墽鍙堟槸寮哄埗鐖?,
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "094a608a-e63e-4a29-a93f-01e69b076085",
+      "title": "姊︽兂鐨勬帴鍔涙渶鐕?,
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "a74c8dce-fd8c-4d33-9fed-e8c3e55557cf",
+      "title": "鍥戒箳鍏竷浼︽暒涓栦箳璧涘垵姝ュ弬璧涘悕鍗?,
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "country",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB"
+      ]
+    },
+    {
+      "event_id": "e6316341-7111-40ec-a5f7-8dbcd4031f17",
+      "title": "瀵瑰浗鍐呮垚鍝佹补浠锋牸閲囧彇涓存椂璋冩帶",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "5425747e-fab4-4d85-a902-bd06efef614e",
+      "title": "Would ex-Google boss Matt Brittin be the right person to steer the BBC?",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "b4beef54-5afc-41ad-9689-4ad0f3f5347a",
+      "title": "Will 'risky' Gattuso lead Italy back to World Cup?",
+      "status": "updated",
+      "main_country": "IT",
+      "event_level": "country",
+      "region_tags": [
+        "IT",
+        "CA",
+        "MX",
+        "US"
+      ],
+      "geo_keys": [
+        "IT",
+        "CA",
+        "MX",
+        "US"
+      ]
+    },
+    {
+      "event_id": "70f8d0fc-4b68-47c6-b2ce-571954389218",
+      "title": "What is Russo's best position?",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "3f689aca-5c71-477a-803e-e4edbde02b4f",
+      "title": "What we know about the LaGuardia Airport crash",
+      "status": "updated",
+      "main_country": "US",
+      "event_level": "admin1",
+      "region_tags": [
+        "US"
+      ],
+      "geo_keys": [
+        "US.NY"
+      ]
+    },
+    {
+      "event_id": "9ad81c1e-5acc-43f7-a309-ce347bb8cf6b",
+      "title": "OnlyFans owner Leonid Radvinsky dies at 43",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "8dc340bd-b567-41b6-8cd3-04792ca0494d",
+      "title": "Sacking McCullum would have been 'easy' - ECB chief",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "country",
+      "region_tags": [
+        "GB",
+        "AU"
+      ],
+      "geo_keys": [
+        "GB",
+        "AU",
+        "GB.WLS"
+      ]
+    },
+    {
+      "event_id": "feaef1e9-937c-4535-aced-cfbcb1af2bfe",
+      "title": "Are autograph hunters going too far?",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "348707f2-4cf1-423e-997e-1ed399c4637e",
+      "title": "The sentimental goalkeeping call that cost Arsenal",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "f0bbf3bb-d99b-4e13-af97-0ac71aa9d2d8",
+      "title": "'Impossible for him to stay' - what next for Tudor and Tottenham?",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2635608"
+      ]
+    },
+    {
+      "event_id": "27af0157-e68b-4f9f-81c1-0309fc9fb8a8",
+      "title": "England to host Canada in Rugby World Cup final rematch",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "country",
+      "region_tags": [
+        "GB",
+        "CA"
+      ],
+      "geo_keys": [
+        "GB",
+        "CA"
+      ]
+    },
+    {
+      "event_id": "4b4d2613-2807-48c8-98c4-33102ad2d3c6",
+      "title": "Quins feel pain, Russell prevails & Tigers tear it up - Prem talking points",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2644668"
+      ]
+    },
+    {
+      "event_id": "3bc47bb1-a8c3-4254-8689-f38ce6637112",
+      "title": "Four hours inside Bellamy's office - and the Wales boss' complex mind",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "admin1",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB.WLS"
+      ]
+    },
+    {
+      "event_id": "c7b27efa-578e-428b-b7cd-598e6317187e",
+      "title": "White gets first England call-up since 2022",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "country",
+      "region_tags": [
+        "GB",
+        "JP",
+        "UY"
+      ],
+      "geo_keys": [
+        "GB",
+        "JP",
+        "UY"
+      ]
+    },
+    {
+      "event_id": "6974bd25-9baa-4e81-8283-09d252dea0e4",
+      "title": "Trump threatens TV networks over unpatriotic Iran coverage",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR"
+      ]
+    },
+    {
+      "event_id": "290f6691-3d28-454e-ba52-87aab85d3263",
+      "title": "Is Iran Capable of Hitting the UK?",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "country",
+      "region_tags": [
+        "IR",
+        "GB",
+        "FR",
+        "DE",
+        "IL"
+      ],
+      "geo_keys": [
+        "IR",
+        "GB:2643743",
+        "FR:2988507",
+        "DE:2950159",
+        "IL",
+        "GB"
+      ]
+    },
+    {
+      "event_id": "0542d4ea-b338-4648-a880-af034b99198e",
+      "title": "BBC News app",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "101ae9c6-96e9-4a01-af1a-21f5f510ffcf",
+      "title": "Boy admits filming Westfield chair-throwing prank",
+      "status": "updated",
+      "main_country": "US",
+      "event_level": "city",
+      "region_tags": [
+        "US"
+      ],
+      "geo_keys": [
+        "US:4843811"
+      ]
+    },
+    {
+      "event_id": "98732f51-dec9-4df2-b09e-f71f4408fc47",
+      "title": "Primary school with just one pupil could be closed for good",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "6e8255c9-bba0-41a5-84d3-1608fe6726d1",
+      "title": "Men admit violent disorder outside asylum hotel",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "ca80da36-5a3d-4a01-ba95-fdaa075886e1",
+      "title": "Meningitis outbreak passes peak, says health agency",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "deb98cb2-8b95-4504-af85-3d8369742b5b",
+      "title": "Ministers name seven areas where 'new towns' could be built",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "15a5935c-ad9b-45bf-aa0c-d1b11d664d69",
+      "title": "Scotland becomes first in UK to test newborns for rare genetic condition",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "admin1",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB.SCT",
+        "GB"
+      ]
+    },
+    {
+      "event_id": "9e013d60-e8ae-4b6c-86af-edf8dba06410",
+      "title": "What did critics think of Saturday Night Live UK's debut?",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "country",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB"
+      ]
+    },
+    {
+      "event_id": "69b7d438-5fd9-43ff-9921-fbbd1f83c59a",
+      "title": "How 'Keely 2.0' dominated 800m field for first world indoors title",
+      "status": "updated",
+      "main_country": "PL",
+      "event_level": "country",
+      "region_tags": [
+        "PL"
+      ],
+      "geo_keys": [
+        "PL"
+      ]
+    },
+    {
+      "event_id": "3188c726-6186-4c5d-bf36-dab60b6d7f5a",
+      "title": "US weight-loss drugmakers slash prices in fight to win customers",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "38fca8a2-51ec-448c-9873-829f239119ce",
+      "title": "Andrew Garfield: The Magic Faraway Tree deals with problems for modern parents and kids",
+      "status": "updated",
+      "main_country": "US",
+      "event_level": "city",
+      "region_tags": [
+        "US"
+      ],
+      "geo_keys": [
+        "US:4535961"
+      ]
+    },
+    {
+      "event_id": "e4d82704-ff3b-4529-85ae-d2b760f19f06",
+      "title": "Jamie Oliver stars in music video for CMAT's song about hating him",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "9695f41d-78a0-4dcd-a44f-9f7396ad4d2c",
+      "title": "Grisly or just country life? The mole trapping photos dividing social media",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "4bab20e2-882e-4dde-a614-e14a0023a398",
+      "title": "Our son loved the outdoors 鈥?invisible illness means he now can't walk or talk",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "admin1",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB.WLS"
+      ]
+    },
+    {
+      "event_id": "143ff323-d373-4bf5-a348-735e67bb5170",
+      "title": "Israel to expand ground and air attacks against Hezbollah in Lebanon",
+      "status": "updated",
+      "main_country": "IL",
+      "event_level": "country",
+      "region_tags": [
+        "IL",
+        "LB"
+      ],
+      "geo_keys": [
+        "IL",
+        "LB"
+      ]
+    },
+    {
+      "event_id": "f4ee95c9-5c89-4d45-a347-bf7a5f181ce4",
+      "title": "Why did US and Israel attack Iran and how long could the war last?",
+      "status": "updated",
+      "main_country": "IL",
+      "event_level": "country",
+      "region_tags": [
+        "IL",
+        "IR"
+      ],
+      "geo_keys": [
+        "IL",
+        "IR"
+      ]
+    },
+    {
+      "event_id": "e2fd02e1-e4cf-4cd6-9c96-083adada91ac",
+      "title": "Oil falls and shares rebound after Trump says talks have been held to end war",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "a42239b7-6258-48e4-8acd-d15c9e030afd",
+      "title": "UN warns Earth's climate being 'pushed beyond its limits' as El Ni帽o looms",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "5f96fb46-b7d5-4b63-94a2-2f586deae52f",
+      "title": "British couple in Iran prison say situation is 'life-threatening'",
+      "status": "updated",
+      "main_country": "IR",
+      "event_level": "city",
+      "region_tags": [
+        "IR"
+      ],
+      "geo_keys": [
+        "IR:112931",
+        "IR"
+      ]
+    },
+    {
+      "event_id": "fd1f15e0-1c04-4146-bd25-3e43b26f95ad",
+      "title": "Heat pumps work for me - but they're not yet a money saver",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "315ed6ec-a47f-4556-bf7d-1f48d5042a1d",
+      "title": "Porridge recalled over mouse contamination fears",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "4bbfae79-4fe9-4efc-ab5b-f05650154302",
+      "title": "HS2 train speeds could be cut to save money",
+      "status": "updated",
+      "main_country": "GB",
+      "event_level": "city",
+      "region_tags": [
+        "GB"
+      ],
+      "geo_keys": [
+        "GB:2643743",
+        "GB:2655603"
+      ]
+    },
+    {
+      "event_id": "3320f3ad-cceb-4b0c-9042-9ceb71999cd9",
+      "title": "Ryan Gosling's Project Hail Mary becomes 2026's biggest box office debut",
+      "status": "updated",
+      "main_country": "TM",
+      "event_level": "city",
+      "region_tags": [
+        "TM"
+      ],
+      "geo_keys": [
+        "TM:1218667"
+      ]
+    },
+    {
+      "event_id": "e3662fd0-ed45-47fc-9102-23e9616e48f9",
+      "title": "Hospital apology over boy's death after trainee doctor pierced artery",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "e7cb7d62-ec13-43af-95fd-a20dc80bbe9e",
+      "title": "How an island became first in the world to eradicate ferrets",
+      "status": "no_geo_found"
+    },
+    {
+      "event_id": "961c6259-76d6-4d19-b819-67fdc64a3b1f",
+      "title": "'We can't justify a 拢52 lunch': Middle-income families cut back on days out",
+      "status": "no_geo_found"
+    }
+  ]
+}

@@ -1,0 +1,600 @@
+{
+  "version": "1.0",
+  "source": "GeoNames (CC BY 4.0)",
+  "source_url": "https://download.geonames.org/export/dump/",
+  "country_code": "CN",
+  "country_name": "China",
+  "description": "China admin1 词典，基于 GeoNames admin1CodesASCII.txt 清洗生成",
+  "total_count": 31,
+  "admin1_regions": {
+    "01": {
+      "country_code": "CN",
+      "admin1_code": "01",
+      "admin1_code_full": "CN.01",
+      "admin1_name": "Anhui",
+      "admin1_name_ascii": "Anhui",
+      "admin1_name_zh": "安徽",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Anhui",
+        "安徽"
+      ],
+      "geojson_key": "CN.01",
+      "lat": 31.86389,
+      "lng": 117.28083,
+      "source": "geonames",
+      "source_id": "1818058",
+      "country_name": "China"
+    },
+    "02": {
+      "country_code": "CN",
+      "admin1_code": "02",
+      "admin1_code_full": "CN.02",
+      "admin1_name": "Zhejiang",
+      "admin1_name_ascii": "Zhejiang",
+      "admin1_name_zh": "浙江",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Zhejiang",
+        "浙江"
+      ],
+      "geojson_key": "CN.02",
+      "lat": 30.29365,
+      "lng": 120.16142,
+      "source": "geonames",
+      "source_id": "1784764",
+      "country_name": "China"
+    },
+    "03": {
+      "country_code": "CN",
+      "admin1_code": "03",
+      "admin1_code_full": "CN.03",
+      "admin1_name": "Jiangxi",
+      "admin1_name_ascii": "Jiangxi",
+      "admin1_name_zh": "江西",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Jiangxi",
+        "江西"
+      ],
+      "geojson_key": "CN.03",
+      "lat": 28.68396,
+      "lng": 115.85306,
+      "source": "geonames",
+      "source_id": "1806222",
+      "country_name": "China"
+    },
+    "04": {
+      "country_code": "CN",
+      "admin1_code": "04",
+      "admin1_code_full": "CN.04",
+      "admin1_name": "Jiangsu",
+      "admin1_name_ascii": "Jiangsu",
+      "admin1_name_zh": "江苏",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Jiangsu",
+        "江苏"
+      ],
+      "geojson_key": "CN.04",
+      "lat": 32.06167,
+      "lng": 118.77778,
+      "source": "geonames",
+      "source_id": "1806260",
+      "country_name": "China"
+    },
+    "05": {
+      "country_code": "CN",
+      "admin1_code": "05",
+      "admin1_code_full": "CN.05",
+      "admin1_name": "Jilin",
+      "admin1_name_ascii": "Jilin",
+      "admin1_name_zh": "吉林",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Jilin",
+        "吉林"
+      ],
+      "geojson_key": "CN.05",
+      "lat": 43.88,
+      "lng": 125.32278,
+      "source": "geonames",
+      "source_id": "2036500",
+      "country_name": "China"
+    },
+    "06": {
+      "country_code": "CN",
+      "admin1_code": "06",
+      "admin1_code_full": "CN.06",
+      "admin1_name": "Qinghai",
+      "admin1_name_ascii": "Qinghai",
+      "admin1_name_zh": "青海",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Qinghai",
+        "青海"
+      ],
+      "geojson_key": "CN.06",
+      "lat": 36.62554,
+      "lng": 101.75739,
+      "source": "geonames",
+      "source_id": "1280239",
+      "country_name": "China"
+    },
+    "07": {
+      "country_code": "CN",
+      "admin1_code": "07",
+      "admin1_code_full": "CN.07",
+      "admin1_name": "Fujian",
+      "admin1_name_ascii": "Fujian",
+      "admin1_name_zh": "福建",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Fujian",
+        "福建"
+      ],
+      "geojson_key": "CN.07",
+      "lat": 24.47979,
+      "lng": 118.08187,
+      "source": "geonames",
+      "source_id": "1811017",
+      "country_name": "China"
+    },
+    "08": {
+      "country_code": "CN",
+      "admin1_code": "08",
+      "admin1_code_full": "CN.08",
+      "admin1_name": "Heilongjiang",
+      "admin1_name_ascii": "Heilongjiang",
+      "admin1_name_zh": "黑龙江",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Heilongjiang",
+        "黑龙江"
+      ],
+      "geojson_key": "CN.08",
+      "lat": 45.75,
+      "lng": 126.65,
+      "source": "geonames",
+      "source_id": "2036965",
+      "country_name": "China"
+    },
+    "09": {
+      "country_code": "CN",
+      "admin1_code": "09",
+      "admin1_code_full": "CN.09",
+      "admin1_name": "Henan",
+      "admin1_name_ascii": "Henan",
+      "admin1_name_zh": "河南",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Henan",
+        "河南"
+      ],
+      "geojson_key": "CN.09",
+      "lat": 34.75778,
+      "lng": 113.64861,
+      "source": "geonames",
+      "source_id": "1808520",
+      "country_name": "China"
+    },
+    "10": {
+      "country_code": "CN",
+      "admin1_code": "10",
+      "admin1_code_full": "CN.10",
+      "admin1_name": "Hebei",
+      "admin1_name_ascii": "Hebei",
+      "admin1_name_zh": "河北",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Hebei",
+        "河北"
+      ],
+      "geojson_key": "CN.10",
+      "lat": 38.04139,
+      "lng": 114.47861,
+      "source": "geonames",
+      "source_id": "1808773",
+      "country_name": "China"
+    },
+    "11": {
+      "country_code": "CN",
+      "admin1_code": "11",
+      "admin1_code_full": "CN.11",
+      "admin1_name": "Hunan",
+      "admin1_name_ascii": "Hunan",
+      "admin1_name_zh": "湖南",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Hunan",
+        "湖南"
+      ],
+      "geojson_key": "CN.11",
+      "lat": 28.19874,
+      "lng": 112.97087,
+      "source": "geonames",
+      "source_id": "1806691",
+      "country_name": "China"
+    },
+    "12": {
+      "country_code": "CN",
+      "admin1_code": "12",
+      "admin1_code_full": "CN.12",
+      "admin1_name": "Hubei",
+      "admin1_name_ascii": "Hubei",
+      "admin1_name_zh": "湖北",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Hubei",
+        "湖北"
+      ],
+      "geojson_key": "CN.12",
+      "lat": 30.58333,
+      "lng": 114.26667,
+      "source": "geonames",
+      "source_id": "1806949",
+      "country_name": "China"
+    },
+    "13": {
+      "country_code": "CN",
+      "admin1_code": "13",
+      "admin1_code_full": "CN.13",
+      "admin1_name": "Xinjiang",
+      "admin1_name_ascii": "Xinjiang",
+      "admin1_name_zh": "新疆",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Xinjiang",
+        "新疆"
+      ],
+      "geojson_key": "CN.13",
+      "lat": 43.80096,
+      "lng": 87.60046,
+      "source": "geonames",
+      "source_id": "1529047",
+      "country_name": "China"
+    },
+    "14": {
+      "country_code": "CN",
+      "admin1_code": "14",
+      "admin1_code_full": "CN.14",
+      "admin1_name": "Tibet",
+      "admin1_name_ascii": "Tibet",
+      "admin1_name_zh": "西藏",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Tibet",
+        "西藏"
+      ],
+      "geojson_key": "CN.14",
+      "lat": 29.63842,
+      "lng": 91.04441,
+      "source": "geonames",
+      "source_id": "1279685",
+      "country_name": "China"
+    },
+    "15": {
+      "country_code": "CN",
+      "admin1_code": "15",
+      "admin1_code_full": "CN.15",
+      "admin1_name": "Gansu",
+      "admin1_name_ascii": "Gansu",
+      "admin1_name_zh": "甘肃",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Gansu",
+        "甘肃"
+      ],
+      "geojson_key": "CN.15",
+      "lat": 36.05701,
+      "lng": 103.83987,
+      "source": "geonames",
+      "source_id": "1810676",
+      "country_name": "China"
+    },
+    "16": {
+      "country_code": "CN",
+      "admin1_code": "16",
+      "admin1_code_full": "CN.16",
+      "admin1_name": "Guangxi",
+      "admin1_name_ascii": "Guangxi",
+      "admin1_name_zh": "广西",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Guangxi",
+        "广西"
+      ],
+      "geojson_key": "CN.16",
+      "lat": 22.81667,
+      "lng": 108.31667,
+      "source": "geonames",
+      "source_id": "1809867",
+      "country_name": "China"
+    },
+    "18": {
+      "country_code": "CN",
+      "admin1_code": "18",
+      "admin1_code_full": "CN.18",
+      "admin1_name": "Guizhou",
+      "admin1_name_ascii": "Guizhou",
+      "admin1_name_zh": "贵州",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Guizhou",
+        "贵州"
+      ],
+      "geojson_key": "CN.18",
+      "lat": 26.58333,
+      "lng": 106.71667,
+      "source": "geonames",
+      "source_id": "1809445",
+      "country_name": "China"
+    },
+    "19": {
+      "country_code": "CN",
+      "admin1_code": "19",
+      "admin1_code_full": "CN.19",
+      "admin1_name": "Liaoning",
+      "admin1_name_ascii": "Liaoning",
+      "admin1_name_zh": "辽宁",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Liaoning",
+        "辽宁"
+      ],
+      "geojson_key": "CN.19",
+      "lat": 41.79222,
+      "lng": 123.43278,
+      "source": "geonames",
+      "source_id": "2036115",
+      "country_name": "China"
+    },
+    "20": {
+      "country_code": "CN",
+      "admin1_code": "20",
+      "admin1_code_full": "CN.20",
+      "admin1_name": "Inner Mongolia",
+      "admin1_name_ascii": "Inner Mongolia",
+      "admin1_name_zh": "内蒙古",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Inner Mongolia",
+        "内蒙古"
+      ],
+      "geojson_key": "CN.20",
+      "lat": 40.81056,
+      "lng": 111.65222,
+      "source": "geonames",
+      "source_id": "2035607",
+      "country_name": "China"
+    },
+    "21": {
+      "country_code": "CN",
+      "admin1_code": "21",
+      "admin1_code_full": "CN.21",
+      "admin1_name": "Ningxia",
+      "admin1_name_ascii": "Ningxia",
+      "admin1_name_zh": "宁夏",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Ningxia",
+        "宁夏"
+      ],
+      "geojson_key": "CN.21",
+      "lat": 38.46806,
+      "lng": 106.27306,
+      "source": "geonames",
+      "source_id": "1799355",
+      "country_name": "China"
+    },
+    "22": {
+      "country_code": "CN",
+      "admin1_code": "22",
+      "admin1_code_full": "CN.22",
+      "admin1_name": "Beijing",
+      "admin1_name_ascii": "Beijing",
+      "admin1_name_zh": "北京",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Beijing",
+        "北京"
+      ],
+      "geojson_key": "CN.22",
+      "lat": 39.9075,
+      "lng": 116.39723,
+      "source": "geonames",
+      "source_id": "2038349",
+      "country_name": "China"
+    },
+    "23": {
+      "country_code": "CN",
+      "admin1_code": "23",
+      "admin1_code_full": "CN.23",
+      "admin1_name": "Shanghai",
+      "admin1_name_ascii": "Shanghai",
+      "admin1_name_zh": "上海",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Shanghai",
+        "上海"
+      ],
+      "geojson_key": "CN.23",
+      "lat": 31.22222,
+      "lng": 121.45806,
+      "source": "geonames",
+      "source_id": "1796231",
+      "country_name": "China"
+    },
+    "24": {
+      "country_code": "CN",
+      "admin1_code": "24",
+      "admin1_code_full": "CN.24",
+      "admin1_name": "Shanxi",
+      "admin1_name_ascii": "Shanxi",
+      "admin1_name_zh": "山西",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Shanxi",
+        "山西"
+      ],
+      "geojson_key": "CN.24",
+      "lat": 37.86944,
+      "lng": 112.56028,
+      "source": "geonames",
+      "source_id": "1795912",
+      "country_name": "China"
+    },
+    "25": {
+      "country_code": "CN",
+      "admin1_code": "25",
+      "admin1_code_full": "CN.25",
+      "admin1_name": "Shandong",
+      "admin1_name_ascii": "Shandong",
+      "admin1_name_zh": "山东",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Shandong",
+        "山东"
+      ],
+      "geojson_key": "CN.25",
+      "lat": 36.06488,
+      "lng": 120.38042,
+      "source": "geonames",
+      "source_id": "1796328",
+      "country_name": "China"
+    },
+    "26": {
+      "country_code": "CN",
+      "admin1_code": "26",
+      "admin1_code_full": "CN.26",
+      "admin1_name": "Shaanxi",
+      "admin1_name_ascii": "Shaanxi",
+      "admin1_name_zh": "陕西",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Shaanxi",
+        "陕西"
+      ],
+      "geojson_key": "CN.26",
+      "lat": 34.25833,
+      "lng": 108.92861,
+      "source": "geonames",
+      "source_id": "1796480",
+      "country_name": "China"
+    },
+    "28": {
+      "country_code": "CN",
+      "admin1_code": "28",
+      "admin1_code_full": "CN.28",
+      "admin1_name": "Tianjin",
+      "admin1_name_ascii": "Tianjin",
+      "admin1_name_zh": "天津",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Tianjin",
+        "天津"
+      ],
+      "geojson_key": "CN.28",
+      "lat": 39.14222,
+      "lng": 117.17667,
+      "source": "geonames",
+      "source_id": "1792943",
+      "country_name": "China"
+    },
+    "29": {
+      "country_code": "CN",
+      "admin1_code": "29",
+      "admin1_code_full": "CN.29",
+      "admin1_name": "Yunnan",
+      "admin1_name_ascii": "Yunnan",
+      "admin1_name_zh": "云南",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Yunnan",
+        "云南"
+      ],
+      "geojson_key": "CN.29",
+      "lat": 25.03889,
+      "lng": 102.71833,
+      "source": "geonames",
+      "source_id": "1785694",
+      "country_name": "China"
+    },
+    "30": {
+      "country_code": "CN",
+      "admin1_code": "30",
+      "admin1_code_full": "CN.30",
+      "admin1_name": "Guangdong",
+      "admin1_name_ascii": "Guangdong",
+      "admin1_name_zh": "广东",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Guangdong",
+        "广东"
+      ],
+      "geojson_key": "CN.30",
+      "lat": 22.54554,
+      "lng": 114.0683,
+      "source": "geonames",
+      "source_id": "1809935",
+      "country_name": "China"
+    },
+    "31": {
+      "country_code": "CN",
+      "admin1_code": "31",
+      "admin1_code_full": "CN.31",
+      "admin1_name": "Hainan",
+      "admin1_name_ascii": "Hainan",
+      "admin1_name_zh": "海南",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Hainan",
+        "海南"
+      ],
+      "geojson_key": "CN.31",
+      "lat": 20.03421,
+      "lng": 110.34651,
+      "source": "geonames",
+      "source_id": "1809054",
+      "country_name": "China"
+    },
+    "32": {
+      "country_code": "CN",
+      "admin1_code": "32",
+      "admin1_code_full": "CN.32",
+      "admin1_name": "Sichuan",
+      "admin1_name_ascii": "Sichuan",
+      "admin1_name_zh": "四川",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Sichuan",
+        "四川"
+      ],
+      "geojson_key": "CN.32",
+      "lat": 30.66667,
+      "lng": 104.06667,
+      "source": "geonames",
+      "source_id": "1794299",
+      "country_name": "China"
+    },
+    "33": {
+      "country_code": "CN",
+      "admin1_code": "33",
+      "admin1_code_full": "CN.33",
+      "admin1_name": "Chongqing",
+      "admin1_name_ascii": "Chongqing",
+      "admin1_name_zh": "重庆",
+      "admin1_type": "Province/Municipality/AR",
+      "aliases": [
+        "Chongqing",
+        "重庆"
+      ],
+      "geojson_key": "CN.33",
+      "lat": 29.56026,
+      "lng": 106.55771,
+      "source": "geonames",
+      "source_id": "1814905",
+      "country_name": "China"
+    }
+  }
+}

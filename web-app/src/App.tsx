@@ -5,7 +5,7 @@ import NewsDetailPanel from './components/NewsDetailPanel';
 import { useNewsStore } from './stores/newsStore';
 import { useGlobeStore } from './stores/globeStore';
 import { jobsApi, newsApi } from './services/api';
-import { hoursSinceMidnight } from './utils/timeUtils';
+import { DEFAULT_RECENT_HOURS } from './utils/timeUtils';
 import type { Hotspot } from './types/news';
 import './App.css';
 
@@ -97,9 +97,9 @@ function App() {
           ? [...prev.slice(0, -1), { name: label, hotspots: [], geoKey }]
           : [...prev, { name: label, hotspots: [], geoKey }]
       );
-      // Fetch all news for this region from API (globe hotspots are today-only and may be empty)
+      // Keep region detail aligned with the globe/news time window.
       if (geoKey) {
-        newsApi.getRegionNews(geoKey, { page_size: 40, since_hours: hoursSinceMidnight() })
+        newsApi.getRegionNews(geoKey, { page_size: 40, since_hours: DEFAULT_RECENT_HOURS })
           .then((resp: any) => {
             const rawItems = Array.isArray(resp) ? resp : (resp?.items ?? []);
             const items: Hotspot[] = rawItems.map((e: any) => ({
@@ -124,10 +124,10 @@ function App() {
           .catch(() => { /* panel stays empty */ });
       }
     } else {
-      // Country click: globe hotspots are today-only, so fetch ALL country news from the API
+      // Country click: keep the region panel aligned with the same recent window.
       setRegionStack([{ name: label, hotspots: [], geoKey }]);
       if (geoKey) {
-        newsApi.getRegionNews(geoKey, { page_size: 40, since_hours: hoursSinceMidnight() })
+        newsApi.getRegionNews(geoKey, { page_size: 40, since_hours: DEFAULT_RECENT_HOURS })
           .then((resp: any) => {
             const rawItems = Array.isArray(resp) ? resp : (resp?.items ?? []);
             const items: Hotspot[] = rawItems.map((e: any) => ({

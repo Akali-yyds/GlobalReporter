@@ -3,8 +3,8 @@ CNN Spider — HTML page parser.
 CNN moved away from static SSR; headlines live in a JS-hydrated JSON blob inside
 __NEXT_DATA__ or as plain text in the page. We use multiple CSS/XPath strategies.
 """
-import json
 import logging
+import re
 from datetime import datetime
 from typing import Iterator
 
@@ -47,44 +47,27 @@ class CNNSpider(BaseNewsSpider):
         count = 0
         seen: set[str] = set()
 
-        # Strategy 1: extract __NEXT_DATA__ JSON (contains full article list)
-        try:
-            raw = response.css('script[id="__NEXT_DATA__"]::text').get() or ""
-            nd = json.loads(raw)
-            # Walk the JSON for article URLs (typical CNN data structure)
-            for url in self._extract_urls_from_json(nd):
-                if count >= self.max_items:
-                    break
-                url = url.strip()
-                if not url.startswith("http"):
-                    url = "https://www.cnn.com" + url
-                if url in seen or "cnn.com" not in url:
-                    continue
-                seen.add(url)
-                count += 1
-                self.crawled_items.append(self._make_item(url))
-                yield self._make_item(url)
-        except Exception as exc:
-            logger.debug("CNN __NEXT_DATA__ parse failed: %s", exc)
+        for link_sel in response.css("a[href]"):
+            if count >= self.max_items:
+                break
 
-        # Strategy 2: plain link extraction from HTML
-        if count < self.max_items:
-            raw_links = response.css(
-                'a[href*="/202"]'
-            ).xpath("@href").getall()  # 2024/2025/2026 date pattern
+            raw_href = (link_sel.attrib.get("href") or "").strip()
+            if not raw_href:
+                continue
 
-            for raw_url in raw_links:
-                if count >= self.max_items:
-                    break
-                url = raw_url.strip()
-                if not url.startswith("http"):
-                    url = "https://www.cnn.com" + url
-                if url in seen or "cnn.com/+" in url or "cnn.com/videos" in url:
-                    continue
-                seen.add(url)
-                count += 1
-                self.crawled_items.append(self._make_item(url))
-                yield self._make_item(url)
+            url = response.urljoin(raw_href)
+            if not self._is_article_url(url) or url in seen:
+                continue
+
+            title = self.clean_text(link_sel.xpath("normalize-space(string())").get())
+            if not title or not self._looks_like_title(title):
+                continue
+
+            seen.add(url)
+            count += 1
+            item = self._make_item(url, title)
+            self.crawled_items.append(item)
+            yield item
 
         if count == 0:
             logger.warning(
@@ -93,22 +76,30 @@ class CNNSpider(BaseNewsSpider):
                 response.text[:600],
             )
 
-    def _extract_urls_from_json(self, node) -> Iterator[str]:
-        """Walk a parsed JSON object, yield URL strings."""
-        if isinstance(node, dict):
-            for v in node.values():
-                yield from self._extract_urls_from_json(v)
-        elif isinstance(node, list):
-            for item in node:
-                yield from self._extract_urls_from_json(item)
-        elif isinstance(node, str):
-            if ("cnn.com/202" in node or "/world/" in node or "/politics/" in node
-                    or "/business/" in node) and len(node) < 200:
-                yield node
+    @staticmethod
+    def _is_article_url(url: str) -> bool:
+        if "cnn.com" not in url:
+            return False
+        if not re.search(r"/20\d{2}/\d{2}/\d{2}/", url):
+            return False
+        if "/video/" in url or "/videos/" in url:
+            return False
+        return True
 
-    def _make_item(self, url: str) -> NewsArticle:
+    @staticmethod
+    def _looks_like_title(title: str) -> bool:
+        lower = title.lower()
+        if len(title) < 12:
+            return False
+        if lower.startswith("video "):
+            return False
+        if "file photo" in lower or "getty images" in lower or lower.strip() == "reuters":
+            return False
+        return True
+
+    def _make_item(self, url: str, title: str) -> NewsArticle:
         item = NewsArticle()
-        item["title"] = None
+        item["title"] = title
         item["url"] = url
         item["source_name"] = self.source_name
         item["source_code"] = self.source_code
@@ -117,5 +108,5 @@ class CNNSpider(BaseNewsSpider):
         item["language"] = self.language
         item["country"] = self.country
         item["category"] = self.category
-        item["hash"] = self.compute_hash(url, self.source_code)
+        item["hash"] = self.compute_hash(title, url, self.source_code)
         return item

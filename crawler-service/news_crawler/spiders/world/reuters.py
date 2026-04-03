@@ -18,56 +18,48 @@ class ReutersSpider(BaseNewsSpider):
     name = "reuters"
     source_name = "Reuters"
     source_code = "reuters"
-    source_url = "https://www.reuters.com"
+    source_name = "NPR"
+    source_code = "npr"
+    source_url = "https://www.npr.org"
     country = "US"
     language = "en"
     category = "news"
 
     # RSS feeds (primary) — RSSHub mirrors and direct
     RSS_URLS = [
-        "https://feeds.reuters.com/reuters/topNews",
-        "https://feeds.reuters.com/Reuters/worldNews",
-        "https://rsshub.app/reuters/feed/world",
+        "https://www.npr.org/rss/rss.php?id=1001",
     ]
-    # HTML fallback
-    START_URL = "https://www.reuters.com/world"
 
     custom_settings = {
         **BaseNewsSpider.custom_settings,
         "ROBOTSTXT_OBEY": False,
-        "HTTPERROR_ALLOWED_CODES": [401, 403],
     }
 
     def start_requests(self) -> Iterator[Request]:
-        headers_rss = {
-            "User-Agent": (
-                "Mozilla/5.0 (compatible; Feedfetcher-Google; "
-                "+http://www.google.com/feedfetcher.html)"
-            ),
-            "Accept": "application/rss+xml, application/xml, text/xml, */*",
-        }
         for url in self.RSS_URLS:
-            yield Request(url=url, callback=self.parse_rss,
-                          headers=headers_rss, dont_filter=True)
-        yield Request(
-            url=self.START_URL,
-            callback=self.parse,
-            dont_filter=True,
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/122.0.0.0 Safari/537.36"
-                ),
-                "Accept-Language": "en-US,en;q=0.9",
-            },
-        )
+            yield Request(
+                url=url,
+                callback=self.parse_rss,
+                dont_filter=True,
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/122.0.0.0 Safari/537.36"
+                    ),
+                    "Accept": "application/rss+xml, application/xml, text/xml, */*",
+                    "Accept-Language": "en-US,en;q=0.9",
+                },
+            )
 
     def parse_rss(self, response, **kwargs) -> Iterator[NewsArticle]:
         items = response.xpath("//item")
         if not items:
-            logger.warning("Reuters RSS: no items from %s status=%s",
-                           response.url, response.status)
+            logger.warning(
+                "NPR replacement feed returned no items: %s status=%s",
+                response.url,
+                response.status,
+            )
             return
         for it in items:
             if len(self.crawled_items) >= self.max_items:

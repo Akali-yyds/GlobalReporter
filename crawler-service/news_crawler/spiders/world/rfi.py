@@ -14,7 +14,7 @@ from news_crawler.spiders.base import BaseNewsSpider
 logger = logging.getLogger(__name__)
 
 RSS_URLS = [
-    "https://www.rfi.fr/rss",
+    "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
 ]
 
 
@@ -23,20 +23,17 @@ class RfiSpider(BaseNewsSpider):
     name = "rfi"
     source_name = "RFI"
     source_code = "rfi"
-    source_url = "https://www.rfi.fr"
-    country = "FR"
-    language = "fr"
+    source_name = "UN News"
+    source_code = "unnews"
+    source_url = "https://news.un.org"
+    country = "INTL"
+    language = "en"
     category = "news"
 
     custom_settings = {
         **BaseNewsSpider.custom_settings,
         "DOWNLOAD_DELAY": 1.5,
         "ROBOTSTXT_OBEY": False,
-        "HTTPCERROR_ALLOWED_CODES": [403],
-        # Allow 403 bot-block responses through so we can parse their content
-        "DOWNLOADER_MIDDLEWARES": {
-            "scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware": None,
-        },
     }
 
     def start_requests(self) -> Iterator[Request]:
@@ -51,7 +48,8 @@ class RfiSpider(BaseNewsSpider):
                         "AppleWebKit/537.36 (KHTML, like Gecko) "
                         "Chrome/122.0.0.0 Safari/537.36"
                     ),
-                    "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+                    "Accept": "application/rss+xml, application/xml, text/xml, */*",
+                    "Accept-Language": "en-US,en;q=0.9",
                 },
             )
 
@@ -78,9 +76,6 @@ class RfiSpider(BaseNewsSpider):
                 ""
             ).strip()
             if not title or not link:
-                continue
-
-            if link in self.crawled_items:
                 continue
 
             desc = (it.xpath("string(description)").get() or "").strip()

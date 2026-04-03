@@ -67,7 +67,8 @@ class NewsCrawlerPipeline:
             adapter["heat_score"] = min(100, content_length // 100)
         
         self.crawled_count += 1
-        logger.info(f"[Pipeline] Processed item: {adapter.get('title', 'No title')[:50]}")
+        title_preview = (adapter.get("title") or "No title")[:50]
+        logger.info(f"[Pipeline] Processed item: {title_preview}")
         
         return item
     
@@ -190,7 +191,7 @@ class GeoExtractionPipeline:
             from news_crawler.utils.enhanced_geo_processor import EnhancedGeoProcessor
             from news_crawler.utils.location_matcher import LocationMatcher
             from news_crawler.utils.geo_extractor import GeoExtractor
-            from news_crawler.utils.text_snippet import first_paragraph
+            from news_crawler.utils.geo_text_builder import build_geo_search_text
 
             if self._geo is None:
                 self._geo = GeoExtractor()
@@ -199,8 +200,7 @@ class GeoExtractionPipeline:
             if not hasattr(self, "_matcher") or self._matcher is None:
                 self._matcher = LocationMatcher()
 
-            fp = first_paragraph(content) or first_paragraph(summary)
-            text = f"{title} {fp}".strip()
+            text = build_geo_search_text(title, summary, content)
             if not text:
                 return item
 
@@ -208,11 +208,39 @@ class GeoExtractionPipeline:
             region_tags = self._geo.get_country_tags(text)
 
             normalized_geo_entities = self._processor.normalize_entities(geo_entities)
-            text_geo_entities = self._processor.extract_candidates_from_text(
-                text,
-                country_hint=region_tags[0] if region_tags else None,
-            )
-            normalized_geo_entities = self._processor.merge_entities(normalized_geo_entities, text_geo_entities)
+            country_hints = self._collect_country_hints(normalized_geo_entities, region_tags)
+            admin1_hints_by_country = self._collect_admin1_hints(normalized_geo_entities)
+
+            text_geo_groups = []
+            if country_hints:
+                for country_hint in country_hints[:3]:
+                    text_geo_groups.append(
+                        self._processor.extract_candidates_from_text(
+                            text,
+                            country_hint=country_hint,
+                            admin1_hints=admin1_hints_by_country.get(country_hint) or None,
+                            max_entities=14,
+                        )
+                    )
+            text_geo_groups.append(self._processor.extract_candidates_from_text(text, max_entities=12))
+            normalized_geo_entities = self._processor.merge_entities(normalized_geo_entities, *text_geo_groups)
+
+            refined_admin1_hints = self._collect_admin1_hints(normalized_geo_entities)
+            refined_groups = []
+            for country_hint in country_hints[:3]:
+                admin1_hints = refined_admin1_hints.get(country_hint) or admin1_hints_by_country.get(country_hint) or []
+                if not admin1_hints:
+                    continue
+                refined_groups.append(
+                    self._processor.extract_candidates_from_text(
+                        text,
+                        country_hint=country_hint,
+                        admin1_hints=admin1_hints,
+                        max_entities=14,
+                    )
+                )
+            if refined_groups:
+                normalized_geo_entities = self._processor.merge_entities(normalized_geo_entities, *refined_groups)
             # annotate matched_text and source_text_position
             normalized_geo_entities = self._matcher.annotate_matches(
                 title=title,
@@ -221,6 +249,7 @@ class GeoExtractionPipeline:
                 entities=normalized_geo_entities,
             )
             normalized_geo_entities = self._sort_geo_entities(normalized_geo_entities)
+            normalized_geo_entities = self._dedupe_ambiguous_entities(normalized_geo_entities)
 
             if normalized_geo_entities:
                 derived_region_tags = []
@@ -249,10 +278,11 @@ class GeoExtractionPipeline:
 
         type_weight = {"province": 1.0, "admin1": 1.0, "city": 0.92, "country": 0.86}
         pos_weight = {"title": 1.0, "summary": 0.8, "content": 0.6}
+        granularity_bonus = {"province": 0.06, "admin1": 0.06, "city": 0.04, "country": 0.0}
         sorted_entities = sorted(
             entities,
             key=lambda e: (
-                float(e.get("relevance_score") or 0.0),
+                float(e.get("relevance_score") or 0.0) + granularity_bonus.get((e.get("type") or "").lower(), 0.0),
                 type_weight.get((e.get("type") or "").lower(), 0.8),
                 pos_weight.get((e.get("source_text_position") or "").lower(), 0.5),
                 float(e.get("confidence") or 0.0),
@@ -262,6 +292,67 @@ class GeoExtractionPipeline:
         for idx, entity in enumerate(sorted_entities):
             entity["is_primary"] = idx == 0
         return sorted_entities
+
+    @staticmethod
+    def _dedupe_ambiguous_entities(entities: list[dict]) -> list[dict]:
+        deduped: list[dict] = []
+        seen_keys: set[tuple[str, str, str]] = set()
+        for entity in entities:
+            geo_type = (entity.get("type") or "").lower()
+            country_code = (entity.get("country_code") or "").strip().upper()
+            if geo_type == "city":
+                label = (entity.get("city_name") or entity.get("name") or "").strip().lower()
+            elif geo_type in {"province", "admin1"}:
+                label = (entity.get("admin1_name") or entity.get("name") or "").strip().lower()
+            elif geo_type == "country":
+                label = country_code or (entity.get("country_name") or entity.get("name") or "").strip().lower()
+            else:
+                label = (entity.get("name") or "").strip().lower()
+
+            key = (geo_type, country_code, label)
+            if label and key in seen_keys:
+                continue
+            seen_keys.add(key)
+            deduped.append(entity)
+
+        for idx, entity in enumerate(deduped):
+            entity["is_primary"] = idx == 0
+        return deduped
+
+    @staticmethod
+    def _collect_country_hints(entities: list[dict], region_tags: list[str]) -> list[str]:
+        ordered: list[str] = []
+        for entity in entities or []:
+            cc = (entity.get("country_code") or "").strip().upper()
+            if cc and cc not in ordered:
+                ordered.append(cc)
+        for tag in region_tags or []:
+            cc = str(tag or "").strip().upper()
+            if cc and cc not in ordered:
+                ordered.append(cc)
+        return ordered
+
+    @staticmethod
+    def _collect_admin1_hints(entities: list[dict]) -> dict[str, list[str]]:
+        hints: dict[str, list[str]] = {}
+        for entity in entities or []:
+            cc = (entity.get("country_code") or "").strip().upper()
+            if not cc:
+                continue
+            values = []
+            admin1_code = (entity.get("admin1_code") or "").strip().upper()
+            admin1_name = (entity.get("admin1_name") or "").strip()
+            if admin1_code:
+                values.append(admin1_code)
+            if admin1_name:
+                values.append(admin1_name)
+            if not values:
+                continue
+            bucket = hints.setdefault(cc, [])
+            for value in values:
+                if value not in bucket:
+                    bucket.append(value)
+        return hints
 
 
 class ApiIngestPipeline:

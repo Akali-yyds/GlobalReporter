@@ -1,6 +1,7 @@
 // News store using Zustand
 import { create } from 'zustand';
 import { newsApi } from '../services/api';
+import { DEFAULT_RECENT_HOURS } from '../utils/timeUtils';
 import type { NewsEvent, PaginatedResponse } from '../types/news';
 
 interface NewsState {
@@ -40,7 +41,7 @@ export const useNewsStore = create<NewsState>((set, get) => ({
       const response = await newsApi.getHotNews({
         page,
         page_size: pageSize,
-        since_hours: 72, // fetch last 3 days so all sidebar tabs work correctly
+        since_hours: DEFAULT_RECENT_HOURS,
         ...params,
       });
 

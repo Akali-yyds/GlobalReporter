@@ -14,9 +14,9 @@ from news_crawler.spiders.base import BaseNewsSpider
 logger = logging.getLogger(__name__)
 
 RSS_URLS = [
-    "http://www.xinhuanet.com/rss/world.xml",
-    "http://www.xinhuanet.com/rss/politics.xml",
-    "http://www.xinhuanet.com/rss/society.xml",
+    "https://www.news.cn/english/rss/worldrss.xml",
+    "https://www.news.cn/english/rss/chinarss.xml",
+    "https://www.news.cn/english/rss/businessrss.xml",
 ]
 
 
@@ -25,9 +25,10 @@ class XinhuaSpider(BaseNewsSpider):
     name = "xinhua"
     source_name = "新华社"
     source_code = "xinhua"
-    source_url = "https://www.xinhuanet.com"
+    source_name = "Xinhua News"
+    source_url = "https://www.news.cn/english/"
     country = "CN"
-    language = "zh"
+    language = "en"
     category = "news"
 
     custom_settings = {
@@ -48,9 +49,9 @@ class XinhuaSpider(BaseNewsSpider):
                         "AppleWebKit/537.36 (KHTML, like Gecko) "
                         "Chrome/122.0.0.0 Safari/537.36"
                     ),
-                    "Referer": "https://www.xinhuanet.com/",
+                    "Referer": "https://www.news.cn/",
                     "Accept": "application/rss+xml, application/xml, text/xml, */*",
-                    "Accept-Language": "zh-CN,zh;q=0.9",
+                    "Accept-Language": "en-US,en;q=0.9",
                 },
             )
 

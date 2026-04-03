@@ -73,6 +73,7 @@ class EnhancedGeoProcessor:
         text: str,
         *,
         country_hint: Optional[str] = None,
+        admin1_hints: Optional[List[str]] = None,
         max_entities: int = 10,
     ) -> List[Dict[str, Any]]:
         if not text:
@@ -88,6 +89,7 @@ class EnhancedGeoProcessor:
                 name=candidate,
                 extracted_type=inferred_type,
                 country_hint=effective_country_hint,
+                admin1_hints=admin1_hints,
             )
             if matched is None:
                 continue
@@ -183,6 +185,7 @@ class EnhancedGeoProcessor:
         name: str,
         extracted_type: str,
         country_hint: Optional[str],
+        admin1_hints: Optional[List[str]] = None,
     ) -> Optional[Dict[str, Any]]:
         candidates = self._resolve_candidates(name=name, country_hint=country_hint)
         if not candidates:
@@ -199,6 +202,7 @@ class EnhancedGeoProcessor:
                 record=item["record"],
                 extracted_type=extracted_type,
                 country_hint=country_hint,
+                admin1_hints=admin1_hints,
             ),
             reverse=True,
         )
@@ -243,6 +247,7 @@ class EnhancedGeoProcessor:
         record: Dict[str, Any],
         extracted_type: str,
         country_hint: Optional[str],
+        admin1_hints: Optional[List[str]] = None,
     ) -> float:
         score = 0.0
         type_priority = {"city": 0.62, "admin1": 0.58, "country": 0.52}
@@ -259,6 +264,10 @@ class EnhancedGeoProcessor:
         if country_hint and record_country == country_hint.upper():
             score += 0.18
 
+        if admin1_hints and match_type in {"city", "admin1"}:
+            if self._record_matches_admin1_hint(record, admin1_hints):
+                score += 0.16 if match_type == "city" else 0.20
+
         if match_type == "city":
             population = int(record.get("population") or 0)
             if population >= 5_000_000:
@@ -271,6 +280,24 @@ class EnhancedGeoProcessor:
         if match_type == "country":
             score += 0.02
         return score
+
+    @staticmethod
+    def _record_matches_admin1_hint(record: Dict[str, Any], admin1_hints: List[str]) -> bool:
+        if not admin1_hints:
+            return False
+
+        normalized_hints = {hint.strip().lower() for hint in admin1_hints if hint and hint.strip()}
+        normalized_hints_upper = {hint.strip().upper() for hint in admin1_hints if hint and hint.strip()}
+
+        admin1_code = (record.get("admin1_code") or "").strip().upper()
+        if admin1_code and admin1_code in normalized_hints_upper:
+            return True
+
+        for key in ("admin1_name", "admin1_name_ascii", "admin1_name_zh"):
+            value = (record.get(key) or "").strip().lower()
+            if value and value in normalized_hints:
+                return True
+        return False
 
     def _build_record_payload(
         self,

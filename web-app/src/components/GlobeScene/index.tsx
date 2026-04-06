@@ -456,10 +456,21 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ hotspots: rawHotspots,  onAdmin
     []
   );
 
+  const clearGeoInteractionState = useCallback(() => {
+    setHoveredCountry(null);
+    setHoveredCountryEntry(null);
+    setHoveredAdmin1(null);
+    setHoveredAdmin1Entry(null);
+    setSelectedAdmin1Code(null);
+    hoveredFeatureRef.current = null;
+    clickTargetRef.current = null;
+  }, []);
+
   const handleBackToGlobal = useCallback(() => {
+    clearGeoInteractionState();
     backToGlobal();
     flyTo(22, 105, 2.45, 1000);
-  }, [backToGlobal, flyTo]);
+  }, [backToGlobal, clearGeoInteractionState, flyTo]);
 
   const handlePolygonClick = useCallback(
     (polygon: object) => {
@@ -510,6 +521,9 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ hotspots: rawHotspots,  onAdmin
         flyTo(center.lat, center.lng, alt, 1200);
       }
       if (globeRef.current) globeRef.current.controls().autoRotate = false;
+      setSelectedAdmin1Code(null);
+      setHoveredAdmin1(null);
+      setHoveredAdmin1Entry(null);
       selectCountry(iso2, displayName, iso3);
       const countryHotspots = hotspots.filter(
         (h) => h.geo_key === iso2 || (h.iso_a3 && h.iso_a3.toUpperCase() === iso3)
@@ -563,7 +577,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ hotspots: rawHotspots,  onAdmin
           polygonStrokeColor={polygonStrokeColor}
           polygonAltitude={polygonAltitude}
           polygonLabel={polygonLabel}
-          polygonsTransitionDuration={700}
+          polygonsTransitionDuration={layer === 'country' ? 700 : 0}
           onPolygonHover={handlePolygonHover}
           onPolygonClick={() => { /* handled by onMouseUp + hoveredFeatureRef */ }}
           pointsData={layer === 'country' ? [] : hotspots}

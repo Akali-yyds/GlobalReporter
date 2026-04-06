@@ -6,20 +6,47 @@ import { useNewsStore } from './stores/newsStore';
 import { useGlobeStore } from './stores/globeStore';
 import { jobsApi, newsApi } from './services/api';
 import { DEFAULT_RECENT_HOURS } from './utils/timeUtils';
-import type { Hotspot } from './types/news';
+import type { Hotspot, SourceTier } from './types/news';
 import './App.css';
 
 const POLL_MS = 45_000;
 
+function mapRegionHotspots(
+  hotspots: Hotspot[],
+  geoKey: string | undefined,
+  geoType: 'country' | 'region'
+): Hotspot[] {
+  if (!geoKey) return [];
+  return hotspots.map((hotspot) => ({
+    ...hotspot,
+    geo_key: hotspot.geo_key || geoKey,
+    geo_type: geoType,
+    display_type: hotspot.display_type || 'polygon',
+    center: hotspot.center ?? undefined,
+    confidence: hotspot.confidence ?? 1,
+  }));
+}
+
 function App() {
-  const { selectedEvent, setSelectedEvent, events, total, fetchHotEvents, isLoading } = useNewsStore();
+  const {
+    selectedEvent,
+    setSelectedEvent,
+    events,
+    total,
+    fetchHotEvents,
+    isLoading,
+    selectedTags,
+    selectedSourceTier,
+    toggleTag,
+    clearTags,
+    setSourceTier,
+  } = useNewsStore();
   const { hotspots, fetchHotspots } = useGlobeStore();
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [manualRefresh, setManualRefresh] = useState(false);
   type RegionEntry = { name: string; hotspots: Hotspot[]; geoKey?: string };
   const [regionStack, setRegionStack] = useState<RegionEntry[]>([]);
   const regionPanel = regionStack.length > 0 ? regionStack[regionStack.length - 1] : null;
-  // Only admin1+ entries in breadcrumb — country is shown separately via selectedCountryName
   const regionBreadcrumb = regionStack.length > 1 ? regionStack.slice(1).map((r) => r.name) : [];
   const crawlPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -79,7 +106,7 @@ function App() {
   };
 
   const handleAdmin1RegionClick = useCallback((
-    _regionHotspots: Hotspot[],
+    regionHotspots: Hotspot[],
     regionName: string,
     countryName: string,
     geoKey?: string,
@@ -88,16 +115,18 @@ function App() {
     setIsDetailOpen(false);
     const label = countryName ? `${regionName} · ${countryName}` : regionName;
     const isAdminDrillDown = countryName !== '';
+    const seededHotspots = mapRegionHotspots(
+      regionHotspots,
+      geoKey,
+      isAdminDrillDown ? 'region' : 'country'
+    );
 
     if (isAdminDrillDown) {
-      // Admin1 drill-down: if already at admin1 depth, REPLACE the current entry (same-level switch).
-      // Only push when drilling deeper (first time into admin1 from country level).
       setRegionStack((prev) =>
         prev.length >= 2
-          ? [...prev.slice(0, -1), { name: label, hotspots: [], geoKey }]
-          : [...prev, { name: label, hotspots: [], geoKey }]
+          ? [...prev.slice(0, -1), { name: label, hotspots: seededHotspots, geoKey }]
+          : [...prev, { name: label, hotspots: seededHotspots, geoKey }]
       );
-      // Keep region detail aligned with the globe/news time window.
       if (geoKey) {
         newsApi.getRegionNews(geoKey, { page_size: 40, since_hours: DEFAULT_RECENT_HOURS })
           .then((resp: any) => {
@@ -108,53 +137,56 @@ function App() {
               summary: e.summary,
               heat_score: e.heat_score,
               geo_key: geoKey,
-              geo_type: 'admin1' as const,
+              geo_type: 'region' as const,
               display_type: 'polygon' as const,
-              center: null,
+              center: undefined,
               iso_a3: e.iso_a3 ?? null,
               article_count: e.article_count ?? 1,
               confidence: 1,
             }));
+            if (items.length > 0) {
+              setRegionStack((prev) =>
+                prev.map((entry) =>
+                  entry.geoKey === geoKey ? { ...entry, hotspots: items } : entry
+                )
+              );
+            }
+          })
+          .catch(() => { /* keep seeded hotspots */ });
+      }
+      return;
+    }
+
+    setRegionStack([{ name: label, hotspots: seededHotspots, geoKey }]);
+    if (geoKey) {
+      newsApi.getRegionNews(geoKey, { page_size: 40, since_hours: DEFAULT_RECENT_HOURS })
+        .then((resp: any) => {
+          const rawItems = Array.isArray(resp) ? resp : (resp?.items ?? []);
+          const items: Hotspot[] = rawItems.map((e: any) => ({
+            event_id: e.id,
+            title: e.title,
+            summary: e.summary,
+            heat_score: e.heat_score,
+            geo_key: geoKey,
+            geo_type: 'country' as const,
+            display_type: 'polygon' as const,
+            center: undefined,
+            iso_a3: e.iso_a3 ?? null,
+            article_count: e.article_count ?? 1,
+            confidence: 1,
+          }));
+          if (items.length > 0) {
             setRegionStack((prev) =>
               prev.map((entry) =>
                 entry.geoKey === geoKey ? { ...entry, hotspots: items } : entry
               )
             );
-          })
-          .catch(() => { /* panel stays empty */ });
-      }
-    } else {
-      // Country click: keep the region panel aligned with the same recent window.
-      setRegionStack([{ name: label, hotspots: [], geoKey }]);
-      if (geoKey) {
-        newsApi.getRegionNews(geoKey, { page_size: 40, since_hours: DEFAULT_RECENT_HOURS })
-          .then((resp: any) => {
-            const rawItems = Array.isArray(resp) ? resp : (resp?.items ?? []);
-            const items: Hotspot[] = rawItems.map((e: any) => ({
-              event_id: e.id,
-              title: e.title,
-              summary: e.summary,
-              heat_score: e.heat_score,
-              geo_key: geoKey,
-              geo_type: 'country' as const,
-              display_type: 'polygon' as const,
-              center: null,
-              iso_a3: e.iso_a3 ?? null,
-              article_count: e.article_count ?? 1,
-              confidence: 1,
-            }));
-            setRegionStack((prev) =>
-              prev.map((entry) =>
-                entry.geoKey === geoKey ? { ...entry, hotspots: items } : entry
-              )
-            );
-          })
-          .catch(() => { /* panel stays empty */ });
-      }
+          }
+        })
+        .catch(() => { /* keep seeded hotspots */ });
     }
   }, []);
 
-  /** Pop regionStack back to the country-level entry (index 0) */
   const handleCountryBreadcrumbClick = useCallback(() => {
     setRegionStack((prev) => (prev.length > 1 ? [prev[0]] : prev));
   }, []);
@@ -179,6 +211,25 @@ function App() {
       setIsDetailOpen(true);
     }
   };
+
+  const handleTagToggle = useCallback(async (tag: string) => {
+    toggleTag(tag);
+    await fetchHotEvents({ scope: 'all', page: 1 });
+  }, [fetchHotEvents, toggleTag]);
+
+  const handleTagClear = useCallback(async () => {
+    clearTags();
+    await fetchHotEvents({ scope: 'all', page: 1 });
+  }, [clearTags, fetchHotEvents]);
+
+  const handleSourceTierChange = useCallback(async (tier: SourceTier | null) => {
+    setSourceTier(tier);
+    await fetchHotEvents({
+      scope: 'all',
+      page: 1,
+      ...(tier ? { source_tier: tier } : {}),
+    });
+  }, [fetchHotEvents, setSourceTier]);
 
   const handleCloseDetail = () => {
     setIsDetailOpen(false);
@@ -210,6 +261,11 @@ function App() {
             events={events}
             total={total}
             selectedEventId={selectedEvent?.id}
+            selectedTags={selectedTags}
+            selectedSourceTier={selectedSourceTier}
+            onTagToggle={handleTagToggle}
+            onTagClear={handleTagClear}
+            onSourceTierChange={handleSourceTierChange}
             onEventClick={handleEventClick}
           />
         </aside>

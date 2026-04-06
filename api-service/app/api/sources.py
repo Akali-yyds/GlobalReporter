@@ -1,18 +1,54 @@
 """
 Sources API endpoints.
 """
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime, timedelta, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import NewsSource
+from app.models import CrawlJob, EventArticle, NewsArticle, NewsEvent, NewsSource
+from app.schemas.source import NewsSourceResponse, SourceAnalyticsItem, SourceAnalyticsResponse, SourceTierAnalyticsItem
 
 router = APIRouter()
 
+_LOW_SIGNAL_CATEGORIES = {"social", "news", "general", "misc", "community"}
+_ALWAYS_NOISY_CATEGORIES = {"entertainment", "celebrity", "variety"}
+_FINE_GRAIN_EVENT_LEVELS = {"admin1", "admin2", "city", "district", "point"}
 
-@router.get("/", response_model=list)
+
+def _ratio(numerator: int, denominator: int) -> float:
+    if denominator <= 0:
+        return 0.0
+    return round(numerator / denominator, 4)
+
+
+def _latest_article_time(article: NewsArticle) -> datetime | None:
+    return article.publish_time or article.crawl_time
+
+
+def _has_geo(article: NewsArticle) -> bool:
+    return bool(article.country_tags or article.region_tags or article.city_tags)
+
+
+def _is_low_signal_article(article: NewsArticle) -> bool:
+    tags = [str(tag).strip().lower() for tag in (article.tags or []) if str(tag).strip()]
+    category = (article.category or "").strip().lower()
+    title = (article.title or "").strip()
+
+    if category in _ALWAYS_NOISY_CATEGORIES:
+        return True
+    if not tags and category in _LOW_SIGNAL_CATEGORIES:
+        return True
+    if len(title) < 12 and len(tags) <= 1 and category in _LOW_SIGNAL_CATEGORIES:
+        return True
+    return False
+
+
+@router.get("/", response_model=list[NewsSourceResponse])
 async def get_sources(
     active_only: bool = True,
+    tier: str | None = None,
     db: Session = Depends(get_db),
 ):
     """Get all news sources."""
@@ -20,12 +56,197 @@ async def get_sources(
 
     if active_only:
         query = query.filter(NewsSource.is_active == True)
+    if tier:
+        query = query.filter(NewsSource.source_tier == tier)
 
     sources = query.order_by(NewsSource.name).all()
     return sources
 
 
-@router.get("/{source_id}")
+@router.get("/analytics", response_model=SourceAnalyticsResponse)
+async def get_source_analytics(
+    since_hours: int | None = Query(72, ge=1, le=720),
+    freshness_hours: int = Query(24, ge=1, le=168),
+    tier: str | None = Query(None, pattern="^(official|authoritative|aggregator|community|social)$"),
+    active_only: bool = True,
+    db: Session = Depends(get_db),
+):
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    cutoff = None
+    if since_hours is not None:
+        cutoff = now - timedelta(hours=since_hours)
+    freshness_cutoff = now - timedelta(hours=freshness_hours)
+
+    source_query = db.query(NewsSource)
+    if active_only:
+        source_query = source_query.filter(NewsSource.is_active == True)
+    if tier:
+        source_query = source_query.filter(NewsSource.source_tier == tier)
+    sources = source_query.order_by(NewsSource.name).all()
+
+    source_items: list[SourceAnalyticsItem] = []
+    tier_bucket: dict[str, dict] = {}
+
+    for source in sources:
+        article_query = db.query(NewsArticle).filter(NewsArticle.source_id == source.id)
+        if cutoff is not None:
+            article_query = article_query.filter(
+                (NewsArticle.publish_time >= cutoff) | (NewsArticle.crawl_time >= cutoff)
+            )
+        articles = article_query.all()
+        article_ids = [article.id for article in articles]
+
+        event_query = (
+            db.query(NewsEvent)
+            .join(EventArticle, EventArticle.event_id == NewsEvent.id)
+            .join(NewsArticle, NewsArticle.id == EventArticle.article_id)
+            .filter(NewsArticle.source_id == source.id)
+        )
+        if cutoff is not None:
+            event_query = event_query.filter(NewsEvent.last_seen_at >= cutoff)
+        event_rows = event_query.all()
+        deduped_events = {}
+        for event in event_rows:
+            deduped_events[event.id] = event
+        events = list(deduped_events.values())
+        job_query = db.query(CrawlJob).filter(CrawlJob.spider_name == source.code)
+        if cutoff is not None:
+            job_query = job_query.filter(CrawlJob.started_at >= cutoff)
+        jobs = job_query.order_by(CrawlJob.started_at.desc()).all()
+
+        article_count = len(articles)
+        publish_time_covered = sum(1 for article in articles if article.publish_time is not None)
+        fresh_articles = sum(
+            1 for article in articles if (_latest_article_time(article) is not None and _latest_article_time(article) >= freshness_cutoff)
+        )
+        tag_covered = sum(1 for article in articles if article.tags)
+        low_signal_articles = sum(1 for article in articles if _is_low_signal_article(article))
+        geo_covered = sum(1 for article in articles if _has_geo(article))
+        latest_publish_at = max((article.publish_time for article in articles if article.publish_time is not None), default=None)
+        region_yield_events = sum(1 for event in events if (event.event_level or "").strip().lower() in _FINE_GRAIN_EVENT_LEVELS)
+        recent_job_count = len(jobs)
+        successful_job_count = sum(1 for job in jobs if (job.status or "").strip().lower() == "completed")
+        last_job = jobs[0] if jobs else None
+        last_success = next((job for job in jobs if (job.status or "").strip().lower() == "completed"), None)
+        avg_heat = round(sum(int(event.heat_score or 0) for event in events) / len(events), 2) if events else 0.0
+        latest_event_at = max((event.last_seen_at for event in events if event.last_seen_at is not None), default=None)
+        source_items.append(
+            SourceAnalyticsItem(
+                code=source.code,
+                name=source.name,
+                source_tier=source.source_tier,
+                is_active=bool(source.is_active),
+                article_count=article_count,
+                event_count=len(events),
+                recent_job_count=recent_job_count,
+                successful_job_count=successful_job_count,
+                success_rate=_ratio(successful_job_count, recent_job_count),
+                avg_event_heat=avg_heat,
+                publish_time_coverage=_ratio(publish_time_covered, article_count),
+                fresh_article_ratio=_ratio(fresh_articles, article_count),
+                tag_coverage_ratio=_ratio(tag_covered, article_count),
+                low_signal_ratio=_ratio(low_signal_articles, article_count),
+                geo_coverage_ratio=_ratio(geo_covered, article_count),
+                region_yield_ratio=_ratio(region_yield_events, len(events)),
+                last_job_status=last_job.status if last_job else None,
+                last_job_started_at=last_job.started_at if last_job else None,
+                last_success_at=last_success.started_at if last_success else None,
+                last_error_message=last_job.error_message if last_job and last_job.status != "completed" else None,
+                latest_publish_at=latest_publish_at,
+                latest_event_at=latest_event_at,
+            )
+        )
+
+        bucket = tier_bucket.setdefault(
+            source.source_tier,
+            {
+                "source_tier": source.source_tier,
+                "source_count": 0,
+                "active_source_count": 0,
+                "article_count": 0,
+                "event_count": 0,
+                "recent_job_count": 0,
+                "successful_job_count": 0,
+                "heat_sum": 0.0,
+                "heat_samples": 0,
+                "publish_time_covered": 0,
+                "fresh_articles": 0,
+                "tag_covered": 0,
+                "low_signal_articles": 0,
+                "geo_covered": 0,
+                "region_yield_events": 0,
+                "last_job_started_at": None,
+                "last_success_at": None,
+                "latest_publish_at": None,
+                "latest_event_at": None,
+            },
+        )
+        bucket["source_count"] += 1
+        if source.is_active:
+            bucket["active_source_count"] += 1
+        bucket["article_count"] += article_count
+        bucket["event_count"] += len(events)
+        bucket["recent_job_count"] += recent_job_count
+        bucket["successful_job_count"] += successful_job_count
+        bucket["publish_time_covered"] += publish_time_covered
+        bucket["fresh_articles"] += fresh_articles
+        bucket["tag_covered"] += tag_covered
+        bucket["low_signal_articles"] += low_signal_articles
+        bucket["geo_covered"] += geo_covered
+        bucket["region_yield_events"] += region_yield_events
+        if events:
+            bucket["heat_sum"] += sum(int(event.heat_score or 0) for event in events)
+            bucket["heat_samples"] += len(events)
+        if last_job and (bucket["last_job_started_at"] is None or last_job.started_at > bucket["last_job_started_at"]):
+            bucket["last_job_started_at"] = last_job.started_at
+        if last_success and (bucket["last_success_at"] is None or last_success.started_at > bucket["last_success_at"]):
+            bucket["last_success_at"] = last_success.started_at
+        if latest_publish_at and (bucket["latest_publish_at"] is None or latest_publish_at > bucket["latest_publish_at"]):
+            bucket["latest_publish_at"] = latest_publish_at
+        if latest_event_at and (bucket["latest_event_at"] is None or latest_event_at > bucket["latest_event_at"]):
+            bucket["latest_event_at"] = latest_event_at
+
+    tier_items = [
+        SourceTierAnalyticsItem(
+            source_tier=bucket["source_tier"],
+            source_count=bucket["source_count"],
+            active_source_count=bucket["active_source_count"],
+            article_count=bucket["article_count"],
+            event_count=bucket["event_count"],
+            recent_job_count=bucket["recent_job_count"],
+            successful_job_count=bucket["successful_job_count"],
+            success_rate=_ratio(bucket["successful_job_count"], bucket["recent_job_count"]),
+            avg_event_heat=round(bucket["heat_sum"] / bucket["heat_samples"], 2) if bucket["heat_samples"] else 0.0,
+            publish_time_coverage=_ratio(bucket["publish_time_covered"], bucket["article_count"]),
+            fresh_article_ratio=_ratio(bucket["fresh_articles"], bucket["article_count"]),
+            tag_coverage_ratio=_ratio(bucket["tag_covered"], bucket["article_count"]),
+            low_signal_ratio=_ratio(bucket["low_signal_articles"], bucket["article_count"]),
+            geo_coverage_ratio=_ratio(bucket["geo_covered"], bucket["article_count"]),
+            region_yield_ratio=_ratio(bucket["region_yield_events"], bucket["event_count"]),
+            last_job_started_at=bucket["last_job_started_at"],
+            last_success_at=bucket["last_success_at"],
+            latest_publish_at=bucket["latest_publish_at"],
+            latest_event_at=bucket["latest_event_at"],
+        )
+        for bucket in sorted(tier_bucket.values(), key=lambda item: (-item["event_count"], item["source_tier"]))
+    ]
+
+    source_items.sort(
+        key=lambda item: (
+            -item.event_count,
+            -(item.article_count or 0),
+            item.name.lower(),
+        )
+    )
+    return SourceAnalyticsResponse(
+        since_hours=since_hours,
+        freshness_hours=freshness_hours,
+        tiers=tier_items,
+        sources=source_items,
+    )
+
+
+@router.get("/{source_id}", response_model=NewsSourceResponse)
 async def get_source(
     source_id: str,
     db: Session = Depends(get_db),

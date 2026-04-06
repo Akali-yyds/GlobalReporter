@@ -10,6 +10,9 @@ SPIDERS = [
     "bbc", "ap", "guardian", "aljazeera", "dw", "france24",
     "cna", "scmp", "nhk", "ndtv",
     "sina", "global_times", "tencent",
+    "bilibili_hot",
+    "nasa_official", "openai_official", "google_blog",
+    "github_changelog", "github_openai_releases", "youtube_official",
 ]
 
 

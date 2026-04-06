@@ -10,13 +10,15 @@ import logging
 import re
 import urllib.error
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import Any, Dict, Optional
 
 from itemadapter import ItemAdapter
 from scrapy.exceptions import DropItem
 
 from news_crawler.direct_ingest import try_direct_ingest
+from news_crawler.utils.news_signal import classify_news_signal
 
 logger = logging.getLogger(__name__)
 
@@ -170,6 +172,140 @@ class DeduplicationPipeline:
         """Called when spider is opened."""
         self.seen_hashes.clear()
         logger.info(f"[Dedup] Pipeline opened for {spider.name}")
+
+
+class IntakeQualityPipeline:
+    """
+    Gate incoming items by freshness and basic signal quality.
+
+    Goals:
+    - reject obviously stale items when a publish timestamp exists
+    - reject low-value entertainment-style items
+    - emit normalized tags and a more useful semantic category
+    """
+
+    def __init__(
+        self,
+        *,
+        max_age_hours: int = 24,
+        filter_low_value: bool = True,
+        allow_missing_published_at: bool = True,
+    ):
+        self.max_age_hours = max(1, int(max_age_hours))
+        self.filter_low_value = bool(filter_low_value)
+        self.allow_missing_published_at = bool(allow_missing_published_at)
+        self.filtered_stale = 0
+        self.filtered_low_value = 0
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(
+            max_age_hours=int(crawler.settings.get("NEWS_MAX_AGE_HOURS", 24)),
+            filter_low_value=bool(crawler.settings.getbool("NEWS_FILTER_LOW_VALUE", True)),
+            allow_missing_published_at=bool(crawler.settings.getbool("NEWS_ALLOW_MISSING_PUBLISHED_AT", True)),
+        )
+
+    def process_item(self, item, spider):
+        adapter = ItemAdapter(item)
+        published_dt = self._normalize_published_at(adapter.get("published_at"), spider)
+        if published_dt is not None:
+            adapter["published_at"] = published_dt.isoformat()
+            age_hours = (datetime.now(timezone.utc).replace(tzinfo=None) - published_dt).total_seconds() / 3600.0
+            if age_hours > self.max_age_hours:
+                self.filtered_stale += 1
+                raise DropItem(
+                    f"Stale item filtered: age_hours={age_hours:.1f} > {self.max_age_hours} title={adapter.get('title')!r}"
+                )
+        elif not self.allow_missing_published_at:
+            self.filtered_stale += 1
+            raise DropItem(f"Missing published_at filtered: {adapter.get('title')!r}")
+
+        signal = classify_news_signal(
+            title=adapter.get("title"),
+            summary=adapter.get("summary"),
+            content=adapter.get("content"),
+            source_code=adapter.get("source_code"),
+            base_category=adapter.get("category"),
+        )
+
+        if signal.tags:
+            adapter["tags"] = self._merge_tags(adapter.get("tags"), signal.tags)
+
+        if signal.category:
+            adapter["category"] = signal.category
+
+        if self.filter_low_value and signal.should_drop:
+            self.filtered_low_value += 1
+            raise DropItem(
+                f"Low-value item filtered: negatives={signal.matched_negative[:4]} title={adapter.get('title')!r}"
+            )
+
+        return item
+
+    def open_spider(self, spider):
+        self.filtered_stale = 0
+        self.filtered_low_value = 0
+        logger.info(
+            "[Quality] Pipeline opened for %s (max_age_hours=%s, filter_low_value=%s, allow_missing_published_at=%s)",
+            spider.name,
+            self.max_age_hours,
+            self.filter_low_value,
+            self.allow_missing_published_at,
+        )
+
+    def close_spider(self, spider):
+        logger.info(
+            "[Quality] Pipeline closed for %s. stale_filtered=%s low_value_filtered=%s",
+            spider.name,
+            self.filtered_stale,
+            self.filtered_low_value,
+        )
+
+    @staticmethod
+    def _merge_tags(existing: Any, derived: list[str]) -> list[str]:
+        ordered: list[str] = []
+        if isinstance(existing, str):
+            existing_iter = [part.strip() for part in existing.split(",") if part.strip()]
+        else:
+            existing_iter = existing or []
+        for value in existing_iter:
+            if value and value not in ordered:
+                ordered.append(value)
+        for value in derived:
+            if value and value not in ordered:
+                ordered.append(value)
+        return ordered
+
+    @staticmethod
+    def _normalize_published_at(value: Any, spider) -> Optional[datetime]:
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value.astimezone(timezone.utc).replace(tzinfo=None) if value.tzinfo else value
+
+        parser = getattr(spider, "parse_datetime", None)
+        if callable(parser):
+            try:
+                parsed = parser(value)
+                if parsed is not None:
+                    return parsed
+            except Exception:
+                logger.debug("[Quality] spider.parse_datetime failed for value=%r", value, exc_info=True)
+        if isinstance(value, str):
+            cleaned = value.strip()
+            if not cleaned:
+                return None
+            try:
+                dt = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
+                return dt.astimezone(timezone.utc).replace(tzinfo=None) if dt.tzinfo else dt
+            except ValueError:
+                pass
+            try:
+                dt = parsedate_to_datetime(cleaned)
+                return dt.astimezone(timezone.utc).replace(tzinfo=None)
+            except Exception:
+                return None
+        return None
 
 
 class GeoExtractionPipeline:

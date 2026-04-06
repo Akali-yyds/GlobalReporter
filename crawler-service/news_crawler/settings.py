@@ -16,6 +16,13 @@ try:
 except Exception:
     pass
 
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -66,6 +73,7 @@ EXTENSIONS = {
 # Configure item pipelines (ingest must run last)
 ITEM_PIPELINES = {
     "news_crawler.pipelines.NewsCrawlerPipeline": 300,
+    "news_crawler.pipelines.IntakeQualityPipeline": 350,
     "news_crawler.pipelines.DeduplicationPipeline": 400,
     "news_crawler.pipelines.GeoExtractionPipeline": 450,
     "news_crawler.pipelines.ApiIngestPipeline": 500,
@@ -120,3 +128,8 @@ DATABASE_URL = os.getenv(
 
 # Base URL of FastAPI (no trailing slash). Crawler POSTs to {API_BASE_URL}/api/news/ingest
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+
+# Intake quality gate
+NEWS_MAX_AGE_HOURS = int(os.getenv("NEWS_MAX_AGE_HOURS", "24"))
+NEWS_FILTER_LOW_VALUE = _env_bool("NEWS_FILTER_LOW_VALUE", True)
+NEWS_ALLOW_MISSING_PUBLISHED_AT = _env_bool("NEWS_ALLOW_MISSING_PUBLISHED_AT", True)

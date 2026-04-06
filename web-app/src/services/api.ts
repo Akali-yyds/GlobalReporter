@@ -1,5 +1,6 @@
 // API service layer
 import axios, { AxiosInstance } from 'axios';
+import type { SourceTier } from '../types/news';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -40,7 +41,17 @@ export default apiClient;
 
 // News API
 export const newsApi = {
-  getHotNews: (params?: { page?: number; page_size?: number; scope?: string; category?: string; since_hours?: number }) =>
+  getHotNews: (params?: {
+    page?: number;
+    page_size?: number;
+    scope?: string;
+    category?: string;
+    tag?: string;
+    tags_any?: string;
+    tags_all?: string;
+    source_tier?: SourceTier;
+    since_hours?: number;
+  }) =>
     apiClient.get('/news/hot', { params }),
 
   getNewsDetail: (eventId: string) =>
@@ -70,7 +81,7 @@ export const hotspotsApi = {
 
 // Sources API
 export const sourcesApi = {
-  getSources: () => apiClient.get('/sources'),
+  getSources: (params?: { active_only?: boolean; tier?: SourceTier }) => apiClient.get('/sources', { params }),
 };
 
 // Jobs API

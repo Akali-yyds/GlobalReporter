@@ -1,13 +1,20 @@
 """
 Database configuration and session management.
 """
-import os
+from __future__ import annotations
+
+import logging
+import sys
+from contextlib import contextmanager
+from pathlib import Path
 from typing import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def get_engine():
@@ -60,7 +67,23 @@ def init_db() -> None:
     This is useful for development and testing.
     """
     from app.models import Base
+    inspector = inspect(engine)
+    table_names = set(inspector.get_table_names())
+    managed_tables = set(Base.metadata.tables.keys())
+    has_user_tables = bool(table_names & managed_tables)
+    is_sqlite = settings.DATABASE_URL.startswith("sqlite")
 
+    if is_sqlite:
+        Base.metadata.create_all(bind=engine)
+        return
+
+    if has_user_tables:
+        _upgrade_existing_schema()
+    else:
+        Base.metadata.create_all(bind=engine)
+        _stamp_schema_head()
+
+    # Keep create_all as a final safety net for unmanaged local environments.
     Base.metadata.create_all(bind=engine)
 
 
@@ -72,3 +95,81 @@ def drop_db() -> None:
     from app.models import Base
 
     Base.metadata.drop_all(bind=engine)
+
+
+def _upgrade_existing_schema() -> None:
+    try:
+        command = _load_alembic_command_module()
+        command.upgrade(_alembic_config(), "head")
+        logger.info("Database migrations upgraded to head.")
+    except Exception:
+        logger.exception("Failed to upgrade database schema to head.")
+        raise
+
+
+def _stamp_schema_head() -> None:
+    try:
+        command = _load_alembic_command_module()
+        command.stamp(_alembic_config(), "head")
+        logger.info("Database schema stamped at head.")
+    except Exception:
+        logger.exception("Failed to stamp database schema at head.")
+        raise
+
+
+def _alembic_config():
+    Config = _load_alembic_config_class()
+
+    api_root = Path(__file__).resolve().parents[1]
+    config = Config(str(api_root / "alembic.ini"))
+    config.set_main_option("script_location", str(api_root / "alembic"))
+    config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+    return config
+
+
+def _load_alembic_command_module():
+    with _site_alembic_import_scope():
+        from alembic import command
+
+    return command
+
+
+def _load_alembic_config_class():
+    with _site_alembic_import_scope():
+        from alembic.config import Config
+
+    return Config
+
+
+@contextmanager
+def _site_alembic_import_scope():
+    api_root = Path(__file__).resolve().parents[1]
+    removed_entries: list[tuple[int, str]] = []
+    removed_modules = {}
+
+    for index in range(len(sys.path) - 1, -1, -1):
+        entry = sys.path[index]
+        if _path_points_to_api_root(entry, api_root):
+            removed_entries.append((index, entry))
+            sys.path.pop(index)
+
+    for module_name in ("alembic", "alembic.config", "alembic.command"):
+        module = sys.modules.pop(module_name, None)
+        if module is not None:
+            removed_modules[module_name] = module
+
+    try:
+        yield
+    finally:
+        for index, entry in sorted(removed_entries, key=lambda item: item[0]):
+            sys.path.insert(index, entry)
+        sys.modules.update(removed_modules)
+
+
+def _path_points_to_api_root(entry: str, api_root: Path) -> bool:
+    if entry == "":
+        return Path.cwd().resolve() == api_root
+    try:
+        return Path(entry).resolve() == api_root
+    except OSError:
+        return False

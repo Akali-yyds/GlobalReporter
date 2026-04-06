@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import String, cast, desc, or_
 
 from app.database import get_db
 from app.models import NewsArticle, NewsEvent, EventArticle, EventGeoMapping, GeoEntity
@@ -23,6 +23,18 @@ from app.utils.ttl_cache import TTLCache
 _hot_news_cache = TTLCache(ttl_seconds=20.0)
 
 router = APIRouter()
+
+
+def _parse_tag_query(raw: Optional[str]) -> List[str]:
+    if not raw:
+        return []
+    values = [part.strip().lower() for part in raw.split(",")]
+    tags: List[str] = []
+    for value in values:
+        if not value or value in tags:
+            continue
+        tags.append(value)
+    return tags
 
 
 @router.post("/ingest")
@@ -62,6 +74,10 @@ async def get_hot_news(
     page_size: int = Query(20, ge=1, le=500),
     scope: Optional[str] = Query(None, pattern="^(all|china|world)$"),
     category: Optional[str] = None,
+    tag: Optional[str] = Query(None, min_length=1),
+    tags_any: Optional[str] = Query(None, min_length=1),
+    tags_all: Optional[str] = Query(None, min_length=1),
+    source_tier: Optional[str] = Query(None, pattern="^(official|authoritative|aggregator|community|social)$"),
     level: Optional[str] = Query(None, pattern="^(country|city|region)$"),
     min_heat: Optional[int] = Query(None, ge=0),
     since_hours: Optional[int] = Query(None, ge=1, le=720),
@@ -73,6 +89,7 @@ async def get_hot_news(
     - page_size: Items per page (default: 20, max: 100)
     - scope: Filter by scope (all/china/world)
     - category: Filter by category
+    - tag: Filter by a normalized topic tag
     - level: Filter by event_level (country/city/region)
     - min_heat: Minimum heat score threshold
     """
@@ -86,6 +103,23 @@ async def get_hot_news(
     if category:
         query = query.filter(NewsEvent.category == category)
 
+    if source_tier:
+        query = query.filter(NewsEvent.source_tier == source_tier)
+
+    if tag:
+        normalized_tag = tag.strip().lower()
+        query = query.filter(cast(NewsEvent.tags, String).like(f'%"{normalized_tag}"%'))
+
+    any_tags = _parse_tag_query(tags_any)
+    if any_tags:
+        query = query.filter(
+            or_(*[cast(NewsEvent.tags, String).like(f'%"{value}"%') for value in any_tags])
+        )
+
+    all_tags = _parse_tag_query(tags_all)
+    for value in all_tags:
+        query = query.filter(cast(NewsEvent.tags, String).like(f'%"{value}"%'))
+
     if level:
         query = query.filter(NewsEvent.event_level == level)
 
@@ -97,7 +131,10 @@ async def get_hot_news(
         cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=since_hours)
         query = query.filter(NewsEvent.last_seen_at >= cutoff)
 
-    cache_key = f"hot:{scope}:{category}:{level}:{min_heat}:{since_hours}:{page}:{page_size}"
+    cache_key = (
+        f"hot:{scope}:{category}:{tag}:{','.join(any_tags)}:{','.join(all_tags)}:"
+        f"{source_tier}:{level}:{min_heat}:{since_hours}:{page}:{page_size}"
+    )
     hit, cached = _hot_news_cache.get(cache_key)
     if hit:
         return cached

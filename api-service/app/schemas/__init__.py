@@ -23,6 +23,7 @@ from app.schemas.geo import (
     Admin1HotspotItem,
     Admin1HotspotListResponse,
 )
+from app.schemas.source import NewsSourceResponse, SourceAnalyticsResponse, SourceAnalyticsItem, SourceTierAnalyticsItem
 
 __all__ = [
     "PaginatedResponse",
@@ -44,4 +45,8 @@ __all__ = [
     "CountryHotspotListResponse",
     "Admin1HotspotItem",
     "Admin1HotspotListResponse",
+    "NewsSourceResponse",
+    "SourceAnalyticsResponse",
+    "SourceAnalyticsItem",
+    "SourceTierAnalyticsItem",
 ]

@@ -1,0 +1,257 @@
+{
+  "version": "1.1",
+  "source": "GeoNames (CC BY 4.0)",
+  "source_url": "https://download.geonames.org/export/dump/",
+  "country_code": "MA",
+  "country_name": "Morocco",
+  "description": "Morocco admin1 dictionary generated from GeoNames admin1CodesASCII.txt",
+  "total_count": 12,
+  "admin1_regions": {
+    "01": {
+      "country_code": "MA",
+      "admin1_code": "01",
+      "admin1_code_full": "MA.01",
+      "admin1_name": "Tanger-Tetouan-Al Hoceima",
+      "admin1_name_ascii": "Tanger-Tetouan-Al Hoceima",
+      "admin1_name_zh": "",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "Tanger-Tetouan-Al Hoceima",
+        "طنجة - تطوان - الحسيمة"
+      ],
+      "geojson_key": "MA.01",
+      "lat": 35.76727,
+      "lng": -5.79975,
+      "source": "geonames",
+      "source_id": "11281874",
+      "country_name": "Morocco"
+    },
+    "02": {
+      "country_code": "MA",
+      "admin1_code": "02",
+      "admin1_code_full": "MA.02",
+      "admin1_name": "Oriental",
+      "admin1_name_ascii": "Oriental",
+      "admin1_name_zh": "东部大区",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "A Oriental",
+        "Doğu",
+        "Oriental",
+        "Region Wschodni",
+        "Regione Orientale",
+        "Восточная область",
+        "Східний регіон",
+        "جهة الشرق",
+        "منطقه شرق",
+        "オリアンタル地方",
+        "东部",
+        "东部大区",
+        "오리앙탈 지방"
+      ],
+      "geojson_key": "MA.02",
+      "lat": 34.68139,
+      "lng": -1.90858,
+      "source": "geonames",
+      "source_id": "11281875",
+      "country_name": "Morocco"
+    },
+    "03": {
+      "country_code": "MA",
+      "admin1_code": "03",
+      "admin1_code_full": "MA.03",
+      "admin1_name": "Fès-Meknès",
+      "admin1_name_ascii": "Fes-Meknes",
+      "admin1_name_zh": "",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "Fes-Meknes",
+        "Fez-Meknes",
+        "Fès-Meknès",
+        "فاس-مكناس"
+      ],
+      "geojson_key": "MA.03",
+      "lat": 34.03313,
+      "lng": -5.00028,
+      "source": "geonames",
+      "source_id": "11281876",
+      "country_name": "Morocco"
+    },
+    "04": {
+      "country_code": "MA",
+      "admin1_code": "04",
+      "admin1_code_full": "MA.04",
+      "admin1_name": "Rabat-Salé-Kénitra",
+      "admin1_name_ascii": "Rabat-Sale-Kenitra",
+      "admin1_name_zh": "",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "Rabat-Sale-Kenitra",
+        "Rabat-Salé-Kénitra"
+      ],
+      "geojson_key": "MA.04",
+      "lat": 34.01325,
+      "lng": -6.83255,
+      "source": "geonames",
+      "source_id": "11281877",
+      "country_name": "Morocco"
+    },
+    "05": {
+      "country_code": "MA",
+      "admin1_code": "05",
+      "admin1_code_full": "MA.05",
+      "admin1_name": "Béni Mellal-Khénifra",
+      "admin1_name_ascii": "Beni Mellal-Khenifra",
+      "admin1_name_zh": "",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "Beni Mellal-Khenifra",
+        "Béni Mellal-Khénifra",
+        "بني ملال - خنيفرة"
+      ],
+      "geojson_key": "MA.05",
+      "lat": 32.88108,
+      "lng": -6.9063,
+      "source": "geonames",
+      "source_id": "11281878",
+      "country_name": "Morocco"
+    },
+    "06": {
+      "country_code": "MA",
+      "admin1_code": "06",
+      "admin1_code_full": "MA.06",
+      "admin1_name": "Casablanca-Settat",
+      "admin1_name_ascii": "Casablanca-Settat",
+      "admin1_name_zh": "",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "Casablanca-Settat",
+        "الدار البيضاء - سطات"
+      ],
+      "geojson_key": "MA.06",
+      "lat": 33.58831,
+      "lng": -7.61138,
+      "source": "geonames",
+      "source_id": "11281879",
+      "country_name": "Morocco"
+    },
+    "07": {
+      "country_code": "MA",
+      "admin1_code": "07",
+      "admin1_code_full": "MA.07",
+      "admin1_name": "Marrakesh-Safi",
+      "admin1_name_ascii": "Marrakesh-Safi",
+      "admin1_name_zh": "",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "Marrakesh-Safi",
+        "مراكش آسفي"
+      ],
+      "geojson_key": "MA.07",
+      "lat": 31.63416,
+      "lng": -7.99994,
+      "source": "geonames",
+      "source_id": "11281880",
+      "country_name": "Morocco"
+    },
+    "08": {
+      "country_code": "MA",
+      "admin1_code": "08",
+      "admin1_code_full": "MA.08",
+      "admin1_name": "Drâa-Tafilalet",
+      "admin1_name_ascii": "Draa-Tafilalet",
+      "admin1_name_zh": "",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "Draa-Tafilalet",
+        "Drâa-Tafilalet"
+      ],
+      "geojson_key": "MA.08",
+      "lat": 31.9314,
+      "lng": -4.42663,
+      "source": "geonames",
+      "source_id": "11281881",
+      "country_name": "Morocco"
+    },
+    "09": {
+      "country_code": "MA",
+      "admin1_code": "09",
+      "admin1_code_full": "MA.09",
+      "admin1_name": "Souss-Massa",
+      "admin1_name_ascii": "Souss-Massa",
+      "admin1_name_zh": "",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "Souss-Massa",
+        "Sūs māssa",
+        "سوس ماسة"
+      ],
+      "geojson_key": "MA.09",
+      "lat": 30.42018,
+      "lng": -9.59815,
+      "source": "geonames",
+      "source_id": "11281882",
+      "country_name": "Morocco"
+    },
+    "10": {
+      "country_code": "MA",
+      "admin1_code": "10",
+      "admin1_code_full": "MA.10",
+      "admin1_name": "Guelmim-Oued Noun",
+      "admin1_name_ascii": "Guelmim-Oued Noun",
+      "admin1_name_zh": "",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "Guelmim-Oued Noun",
+        "جهة كلميم واد نون",
+        "جهة كلميم وادي نون",
+        "كلميم واد نون",
+        "كلميم وادي نون"
+      ],
+      "geojson_key": "MA.10",
+      "lat": 28.98696,
+      "lng": -10.05738,
+      "source": "geonames",
+      "source_id": "11281884",
+      "country_name": "Morocco"
+    },
+    "11": {
+      "country_code": "MA",
+      "admin1_code": "11",
+      "admin1_code_full": "MA.11",
+      "admin1_name": "Laâyoune-Sakia El Hamra",
+      "admin1_name_ascii": "Laayoune-Sakia El Hamra",
+      "admin1_name_zh": "",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "Laayoune-Sakia El Hamra",
+        "Laâyoune-Sakia El Hamra",
+        "العيون - الساقية الحمراء"
+      ],
+      "geojson_key": "MA.11",
+      "lat": 26.73841,
+      "lng": -11.67194,
+      "source": "geonames",
+      "source_id": "11281885",
+      "country_name": "Morocco"
+    },
+    "12": {
+      "country_code": "MA",
+      "admin1_code": "12",
+      "admin1_code_full": "MA.12",
+      "admin1_name": "Dakhla-Oued Ed-Dahab",
+      "admin1_name_ascii": "Dakhla-Oued Ed-Dahab",
+      "admin1_name_zh": "",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "Dakhla-Oued Ed-Dahab"
+      ],
+      "geojson_key": "MA.12",
+      "lat": null,
+      "lng": null,
+      "source": "geonames",
+      "source_id": "11281886",
+      "country_name": "Morocco"
+    }
+  }
+}

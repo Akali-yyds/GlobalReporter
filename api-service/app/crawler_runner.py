@@ -14,19 +14,23 @@ import subprocess
 import sys
 import threading
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
+from uuid import NAMESPACE_DNS, uuid4, uuid5
 
 logger = logging.getLogger(__name__)
 
 # Used when crawl_scope is set (manual refresh from UI).
 # Keep in sync with crawler-service/scheduler.py DEFAULT_SPIDERS.
-CHINA_SPIDERS: List[str] = ["sina", "global_times", "tencent"]
+CHINA_SPIDERS: List[str] = ["sina", "global_times", "tencent", "bilibili_hot"]
 WORLD_SPIDERS: List[str] = [
     "cnn", "guardian",                      # US/UK (ap feeds unreachable on some nets)
     "bbc",                                   # UK
     "aljazeera", "dw", "france24",          # International (reuters bot-blocked)
     "cna", "scmp", "nhk", "ndtv",           # Asia-Pacific
+    "nasa_official", "openai_official", "google_blog",
+    "github_changelog", "github_openai_releases", "youtube_official",
 ]
 
 # Background rotation: alternates CN and World sources for broad coverage
@@ -34,6 +38,8 @@ _BACKGROUND_ROTATION: List[str] = [
     "bbc", "sina",
     "guardian", "tencent",
     "dw", "global_times",
+    "openai_official", "github_changelog",
+    "youtube_official", "bilibili_hot",
     "bbc", "sina",
 ]
 _bg_spider_cycle = itertools.cycle(_BACKGROUND_ROTATION)
@@ -60,8 +66,76 @@ def _clamp_max_items(n: int) -> int:
     return max(5, min(500, int(n)))
 
 
+def _placeholder_source_id(spider_name: str) -> str:
+    return str(uuid5(NAMESPACE_DNS, f"globalreporter:{spider_name}"))
+
+
+def _create_crawl_job(spider_name: str) -> str | None:
+    try:
+        from app.database import SessionLocal
+        from app.models import CrawlJob, NewsSource
+
+        db = SessionLocal()
+        try:
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
+            source = db.query(NewsSource).filter(NewsSource.code == spider_name).first()
+            job = CrawlJob(
+                id=str(uuid4()),
+                source_id=source.id if source else _placeholder_source_id(spider_name),
+                spider_name=spider_name,
+                status="running",
+                started_at=now,
+                finished_at=None,
+                items_crawled=0,
+                items_processed=0,
+                error_message=None,
+            )
+            db.add(job)
+            db.commit()
+            return job.id
+        finally:
+            db.close()
+    except Exception:
+        logger.exception("Failed to create crawl job for spider=%s", spider_name)
+        return None
+
+
+def _update_crawl_job(
+    job_id: str | None,
+    *,
+    status: str,
+    items_crawled: int = 0,
+    items_processed: int = 0,
+    error_message: str | None = None,
+) -> None:
+    if not job_id:
+        return
+
+    try:
+        from app.database import SessionLocal
+        from app.models import CrawlJob
+
+        db = SessionLocal()
+        try:
+            job = db.query(CrawlJob).filter(CrawlJob.id == job_id).first()
+            if job is None:
+                return
+            job.status = status
+            job.items_crawled = items_crawled
+            job.items_processed = items_processed
+            job.error_message = error_message[:2000] if error_message else None
+            job.finished_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            db.commit()
+        finally:
+            db.close()
+    except Exception:
+        logger.exception("Failed to update crawl job %s", job_id)
+
+
 def _run_scrapy_sync(spider_name: str, max_items: int = 50) -> int:
     """Run `scrapy crawl <spider>` synchronously. Returns process return code."""
+    from app.config import settings
+
     cwd = _crawler_cwd()
     if not cwd.is_dir():
         logger.error("Crawler project not found at %s", cwd)
@@ -71,7 +145,7 @@ def _run_scrapy_sync(spider_name: str, max_items: int = 50) -> int:
 
     env = os.environ.copy()
     env.setdefault("SCRAPY_SETTINGS_MODULE", "news_crawler.settings")
-    env.setdefault("API_BASE_URL", os.environ.get("API_BASE_URL", "http://127.0.0.1:8000"))
+    env.setdefault("API_BASE_URL", os.environ.get("API_BASE_URL", settings.API_BASE_URL))
     # Ensure the crawler-service directory is in PYTHONPATH so news_crawler is importable
     python_path = env.get("PYTHONPATH", "")
     crawler_path = str(cwd)
@@ -93,6 +167,7 @@ def _run_scrapy_sync(spider_name: str, max_items: int = 50) -> int:
     ]
 
     t_start = time.monotonic()
+    job_id = _create_crawl_job(spider_name)
     logger.info("Running crawler: %s (cwd=%s)", " ".join(cmd), cwd)
     try:
         proc = subprocess.run(
@@ -107,9 +182,11 @@ def _run_scrapy_sync(spider_name: str, max_items: int = 50) -> int:
         )
     except FileNotFoundError:
         logger.exception("Python executable not found: %s", _python_executable())
+        _update_crawl_job(job_id, status="failed", error_message=f"Python executable not found: {_python_executable()}")
         return 127
     except subprocess.TimeoutExpired:
         logger.error("Crawler timed out for spider=%s", spider_name)
+        _update_crawl_job(job_id, status="failed", error_message="Crawler timed out after 600 seconds")
         return 124
 
     elapsed = time.monotonic() - t_start
@@ -120,8 +197,16 @@ def _run_scrapy_sync(spider_name: str, max_items: int = 50) -> int:
     m_dropped = re.search(r"'item_dropped_count':\s*(\d+)", err)
     scraped = int(m_scraped.group(1)) if m_scraped else None
     dropped = int(m_dropped.group(1)) if m_dropped else 0
+    processed = max((scraped or 0) - dropped, 0)
 
     if proc.returncode != 0:
+        _update_crawl_job(
+            job_id,
+            status="failed",
+            items_crawled=scraped or 0,
+            items_processed=processed,
+            error_message=err[-2000:] if err else f"Spider exited with rc={proc.returncode}",
+        )
         logger.warning(
             "Crawler FAILED spider=%s rc=%s elapsed=%.1fs | STDERR tail: %s",
             spider_name,
@@ -130,6 +215,12 @@ def _run_scrapy_sync(spider_name: str, max_items: int = 50) -> int:
             err[-4000:] if err else "(empty)",
         )
     else:
+        _update_crawl_job(
+            job_id,
+            status="completed",
+            items_crawled=scraped or 0,
+            items_processed=processed,
+        )
         if scraped is not None:
             logger.info(
                 "Crawler OK spider=%s scraped=%s dropped=%s elapsed=%.1fs",

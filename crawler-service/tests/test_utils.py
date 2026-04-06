@@ -63,20 +63,20 @@ class TestGeoExtractor:
     def test_extract_china(self):
         """Test China extraction."""
         text = "China announced new policy"
-        results = GeoExtractor.extract_countries(text)
+        results = GeoExtractor().extract_countries(text)
         assert len(results) >= 1
         assert any(r.geo_key == "CN" for r in results)
 
     def test_extract_usa(self):
         """Test USA extraction."""
         text = "United States presidential election"
-        results = GeoExtractor.extract_countries(text)
+        results = GeoExtractor().extract_countries(text)
         assert any(r.geo_key == "US" for r in results)
 
     def test_extract_mixed(self):
         """Test multiple country extraction."""
         text = "China and Japan meet with USA to discuss trade"
-        results = GeoExtractor.extract_countries(text)
+        results = GeoExtractor().extract_countries(text)
         geo_keys = [r.geo_key for r in results]
         assert "CN" in geo_keys
         assert "JP" in geo_keys
@@ -85,26 +85,26 @@ class TestGeoExtractor:
     def test_get_primary_country(self):
         """Test primary country extraction."""
         text = "China announces new policy"
-        primary = GeoExtractor.get_primary_country(text)
+        primary = GeoExtractor().get_primary_country(text)
         assert primary == "CN"
 
     def test_chinese_text(self):
         """Test Chinese country names."""
         text = "中国宣布新政策"
-        results = GeoExtractor.extract_countries(text)
+        results = GeoExtractor().extract_countries(text)
         assert any(r.geo_key == "CN" for r in results)
 
     def test_no_country(self):
         """Test text without country mention."""
         text = "General news without specific location"
-        results = GeoExtractor.extract_countries(text)
+        results = GeoExtractor().extract_countries(text)
         assert len(results) == 0
 
-    def test_extract_cities(self):
-        """Test city extraction."""
-        text = "Meeting in Beijing"
-        results = GeoExtractor.extract_cities(text)
-        assert any("beijing" in r.name.lower() for r in results)
+    def test_extract_provinces(self):
+        """Test province/state extraction."""
+        text = "Emergency response expanded across California"
+        results = GeoExtractor().extract_provinces(text)
+        assert any(r.geo_key == "US_STATE" for r in results)
 
 
 class TestDeduplicator:

@@ -17,4 +17,5 @@ class NewsSource(BaseModel):
     country = Column(String(10), nullable=False, index=True)
     language = Column(String(10), nullable=False)
     category = Column(String(50), nullable=False)
+    source_tier = Column(String(20), nullable=False, default="authoritative", index=True)
     is_active = Column(Boolean, default=True, nullable=False)

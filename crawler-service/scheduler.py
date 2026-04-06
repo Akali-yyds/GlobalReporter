@@ -59,6 +59,7 @@ DEFAULT_SPIDERS: List[SpiderConfig] = [
     SpiderConfig(name='sina',      interval_minutes=30, priority=10),
     SpiderConfig(name='global_times', interval_minutes=60, priority=7),
     SpiderConfig(name='tencent',   interval_minutes=30, priority=10),
+    SpiderConfig(name='bilibili_hot', interval_minutes=45, priority=7),
     # --- US ---
     SpiderConfig(name='cnn',       interval_minutes=60, priority=7),
     SpiderConfig(name='ap',        interval_minutes=60, priority=7),
@@ -75,6 +76,13 @@ DEFAULT_SPIDERS: List[SpiderConfig] = [
     SpiderConfig(name='scmp',      interval_minutes=60, priority=6),
     SpiderConfig(name='nhk',       interval_minutes=90, priority=5),
     SpiderConfig(name='ndtv',      interval_minutes=90, priority=5),
+    # --- Official / Community ---
+    SpiderConfig(name='nasa_official', interval_minutes=120, priority=7),
+    SpiderConfig(name='openai_official', interval_minutes=90, priority=8),
+    SpiderConfig(name='google_blog', interval_minutes=90, priority=7),
+    SpiderConfig(name='github_changelog', interval_minutes=60, priority=8),
+    SpiderConfig(name='github_openai_releases', interval_minutes=120, priority=7),
+    SpiderConfig(name='youtube_official', interval_minutes=60, priority=7),
 ]
 
 

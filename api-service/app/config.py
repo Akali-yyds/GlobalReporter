@@ -3,6 +3,7 @@ Application configuration settings.
 Uses Pydantic Settings with environment variables.
 """
 from functools import lru_cache
+from pathlib import Path
 from typing import List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,8 +13,10 @@ from pydantic import Field
 class Settings(BaseSettings):
     """Application settings."""
 
+    _ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_ENV_FILE),
         case_sensitive=True,
         env_file_encoding="utf-8",
         extra="ignore",

@@ -1,5 +1,7 @@
 // Type definitions for news data
 
+export type SourceTier = 'official' | 'authoritative' | 'aggregator' | 'community' | 'social';
+
 export interface NewsArticle {
   id: string;
   title: string;
@@ -27,6 +29,8 @@ export interface NewsEvent {
   heat_score: number;
   article_count: number;
   category?: string;
+  tags?: string[];
+  source_tier?: SourceTier;
   title_hash?: string;
   geo_mappings?: GeoMapping[];
   first_seen_at: string;
@@ -70,6 +74,7 @@ export interface NewsSource {
   country: string;
   language: string;
   category: string;
+  source_tier?: SourceTier;
   is_active: boolean;
 }
 

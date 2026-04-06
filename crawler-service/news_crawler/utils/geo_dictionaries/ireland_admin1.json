@@ -1,0 +1,107 @@
+{
+  "version": "1.1",
+  "source": "GeoNames (CC BY 4.0)",
+  "source_url": "https://download.geonames.org/export/dump/",
+  "country_code": "IE",
+  "country_name": "Ireland",
+  "description": "Ireland admin1 dictionary generated from GeoNames admin1CodesASCII.txt",
+  "total_count": 4,
+  "admin1_regions": {
+    "C": {
+      "country_code": "IE",
+      "admin1_code": "C",
+      "admin1_code_full": "IE.C",
+      "admin1_name": "Connacht",
+      "admin1_name_ascii": "Connacht",
+      "admin1_name_zh": "",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "Connacht",
+        "Connaught"
+      ],
+      "geojson_key": "IE.C",
+      "lat": 53.27245,
+      "lng": -9.05095,
+      "source": "geonames",
+      "source_id": "7521313",
+      "country_name": "Ireland"
+    },
+    "L": {
+      "country_code": "IE",
+      "admin1_code": "L",
+      "admin1_code_full": "IE.L",
+      "admin1_name": "Leinster",
+      "admin1_name_ascii": "Leinster",
+      "admin1_name_zh": "倫斯特省",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "Leinster",
+        "Ленстер",
+        "لاينستر",
+        "لینستر",
+        "レンスター",
+        "倫斯特",
+        "倫斯特省",
+        "렌스터"
+      ],
+      "geojson_key": "IE.L",
+      "lat": 53.33306,
+      "lng": -6.24889,
+      "source": "geonames",
+      "source_id": "7521314",
+      "country_name": "Ireland"
+    },
+    "M": {
+      "country_code": "IE",
+      "admin1_code": "M",
+      "admin1_code_full": "IE.M",
+      "admin1_name": "Munster",
+      "admin1_name_ascii": "Munster",
+      "admin1_name_zh": "芒斯特省",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "Munster",
+        "Манстер",
+        "مونستر",
+        "マンスター",
+        "芒斯特",
+        "芒斯特省",
+        "먼스터"
+      ],
+      "geojson_key": "IE.M",
+      "lat": 51.89797,
+      "lng": -8.47061,
+      "source": "geonames",
+      "source_id": "7521315",
+      "country_name": "Ireland"
+    },
+    "U": {
+      "country_code": "IE",
+      "admin1_code": "U",
+      "admin1_code_full": "IE.U",
+      "admin1_name": "Ulster",
+      "admin1_name_ascii": "Ulster",
+      "admin1_name_zh": "阿爾斯特省",
+      "admin1_type": "Admin1",
+      "aliases": [
+        "Provinz Ulster",
+        "Ulster",
+        "Úlster",
+        "Ольстер",
+        "أولستر",
+        "اولستر",
+        "อัลสเตอร์",
+        "アルスター",
+        "阿爾斯特",
+        "阿爾斯特省",
+        "얼스터"
+      ],
+      "geojson_key": "IE.U",
+      "lat": 54.95,
+      "lng": -7.73333,
+      "source": "geonames",
+      "source_id": "7521316",
+      "country_name": "Ireland"
+    }
+  }
+}

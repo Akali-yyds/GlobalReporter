@@ -3,7 +3,7 @@ Event schema definitions.
 """
 from typing import Optional, List
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class EventGeoMappingResponse(BaseModel):
@@ -34,6 +34,8 @@ class NewsEventBase(BaseModel):
     heat_score: int = 0
     article_count: int = 0
     category: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    source_tier: str = "authoritative"
 
 
 class NewsEventListItem(NewsEventBase):
@@ -65,12 +67,12 @@ class NewsEventResponse(NewsEventBase):
     last_seen_at: datetime
     created_at: datetime
     updated_at: datetime
-    geo_mappings: List[EventGeoMappingResponse] = []
+    geo_mappings: List[EventGeoMappingResponse] = Field(default_factory=list)
     primary_article_url: Optional[str] = None
     primary_source_name: Optional[str] = None
     primary_source_code: Optional[str] = None
     primary_source_url: Optional[str] = None
-    related_sources: List[RelatedSourceItem] = []
+    related_sources: List[RelatedSourceItem] = Field(default_factory=list)
 
 
 class NewsEventListResponse(BaseModel):

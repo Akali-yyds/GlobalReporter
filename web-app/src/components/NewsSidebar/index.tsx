@@ -1,18 +1,41 @@
-import { memo, useState, useEffect, useCallback } from 'react';
-import type { NewsEvent } from '../../types/news';
+import { memo, useCallback, useEffect, useState } from 'react';
+import type { NewsEvent, SourceTier } from '../../types/news';
 import './NewsSidebar.css';
 
 export type TimeRange = 'today' | 'yesterday' | '3days';
 
 interface NewsSidebarProps {
   events: NewsEvent[];
-  /** Ignored — count is computed from filtered events internally */
   total?: number;
   selectedEventId?: string;
+  selectedTags: string[];
+  selectedSourceTier: SourceTier | null;
+  onTagToggle: (tag: string) => void | Promise<void>;
+  onTagClear: () => void | Promise<void>;
+  onSourceTierChange: (tier: SourceTier | null) => void | Promise<void>;
   onEventClick: (eventId: string) => void;
 }
 
 const FAVORITES_KEY = 'ainewser.favorites';
+const TOPIC_TAG_OPTIONS = [
+  { value: 'ai', label: 'AI' },
+  { value: 'chip', label: 'Chip' },
+  { value: 'cybersecurity', label: 'Cyber' },
+  { value: 'conflict', label: 'Conflict' },
+  { value: 'disaster', label: 'Disaster' },
+  { value: 'climate', label: 'Climate' },
+  { value: 'science', label: 'Science' },
+  { value: 'space', label: 'Space' },
+  { value: 'policy', label: 'Policy' },
+  { value: 'economy', label: 'Economy' },
+] as const;
+const SOURCE_TIER_OPTIONS: Array<{ value: SourceTier; label: string }> = [
+  { value: 'official', label: 'Official' },
+  { value: 'authoritative', label: 'Media' },
+  { value: 'aggregator', label: 'Aggregate' },
+  { value: 'community', label: 'Community' },
+  { value: 'social', label: 'Social' },
+];
 
 function loadFavorites(): Set<string> {
   try {
@@ -28,16 +51,40 @@ function loadFavorites(): Set<string> {
 function saveFavorites(ids: Set<string>) {
   try {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify([...ids]));
-  } catch {}
+  } catch {
+    // Ignore localStorage write errors in restricted contexts.
+  }
+}
+
+function formatRelativeTime(isoString: string, now: number): string {
+  const date = new Date(isoString);
+  const diff = now - date.getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  if (hours < 1) return 'Just now';
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString('en-US');
 }
 
 const NewsSidebar = memo(
-  ({ events, total: _total, selectedEventId, onEventClick }: NewsSidebarProps) => {
+  ({
+    events,
+    total: _total,
+    selectedEventId,
+    selectedTags,
+    selectedSourceTier,
+    onTagToggle,
+    onTagClear,
+    onSourceTierChange,
+    onEventClick,
+  }: NewsSidebarProps) => {
     const [activeTab, setActiveTab] = useState<'hot' | 'favorites' | 'video'>('hot');
     const [timeRange, setTimeRange] = useState<TimeRange>('today');
     const [favorites, setFavorites] = useState<Set<string>>(() => loadFavorites());
+    const [isTopicExpanded, setIsTopicExpanded] = useState(true);
+    const [isSourceExpanded, setIsSourceExpanded] = useState(false);
 
-    // Expose toggleFavorite so parent/detail panel can update
     useEffect(() => {
       const handler = (e: Event) => {
         const ce = e as CustomEvent<{ eventId: string; favorited: boolean }>;
@@ -54,6 +101,7 @@ const NewsSidebar = memo(
     }, []);
 
     const now = Date.now();
+
     const isToday = useCallback((isoString: string) => {
       const d = new Date(isoString);
       const today = new Date();
@@ -72,54 +120,64 @@ const NewsSidebar = memo(
     }, []);
 
     const isWithin3Days = useCallback((isoString: string) => {
-      const ONE_DAY = 24 * 60 * 60 * 1000;
+      const oneDay = 24 * 60 * 60 * 1000;
       const diff = now - new Date(isoString).getTime();
-      // 过去三天 = yesterday ~ 3 days ago (NOT today, NOT beyond 3 days)
-      return diff >= ONE_DAY && diff <= 3 * ONE_DAY;
+      return diff >= oneDay && diff <= 3 * oneDay;
     }, [now]);
 
-    const filteredEvents = events.filter((e) => {
-      if (activeTab === 'favorites') return favorites.has(e.id);
+    const filteredEvents = events.filter((event) => {
+      if (activeTab === 'favorites') return favorites.has(event.id);
       if (activeTab === 'hot') {
         switch (timeRange) {
-          case 'today': return isToday(e.first_seen_at);
-          case 'yesterday': return isYesterday(e.first_seen_at);
-          case '3days': return isWithin3Days(e.first_seen_at);
+          case 'today':
+            return isToday(event.first_seen_at);
+          case 'yesterday':
+            return isYesterday(event.first_seen_at);
+          case '3days':
+            return isWithin3Days(event.first_seen_at);
         }
       }
       return true;
     });
 
-    const formatTime = (isoString: string) => {
-      const date = new Date(isoString);
-      const diff = now - date.getTime();
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      if (hours < 1) return '刚刚';
-      if (hours < 24) return `${hours}小时前`;
-      const days = Math.floor(hours / 24);
-      if (days < 7) return `${days}天前`;
-      return date.toLocaleDateString('zh-CN');
-    };
+    const tagCounts = events.reduce<Record<string, number>>((acc, event) => {
+      for (const tag of event.tags ?? []) {
+        acc[tag] = (acc[tag] ?? 0) + 1;
+      }
+      return acc;
+    }, {});
+
+    const visibleTagOptions = TOPIC_TAG_OPTIONS.filter(
+      ({ value }) => selectedTags.includes(value) || (tagCounts[value] ?? 0) > 0
+    );
 
     const favCount = favorites.size;
+    const tierCounts = events.reduce<Record<string, number>>((acc, event) => {
+      const tier = event.source_tier;
+      if (!tier) return acc;
+      acc[tier] = (acc[tier] ?? 0) + 1;
+      return acc;
+    }, {});
+    const visibleSourceOptions = SOURCE_TIER_OPTIONS.filter(
+      ({ value }) => selectedSourceTier === value || (tierCounts[value] ?? 0) > 0
+    );
 
     return (
       <div className="news-sidebar">
-        {/* Tab bar */}
         <div className="sidebar-tabs">
           <button
             type="button"
             className={`sidebar-tab ${activeTab === 'hot' ? 'active' : ''}`}
             onClick={() => setActiveTab('hot')}
           >
-            热点新闻
+            Hot
           </button>
           <button
             type="button"
             className={`sidebar-tab ${activeTab === 'favorites' ? 'active' : ''}`}
             onClick={() => setActiveTab('favorites')}
           >
-            收藏夹
+            Favorites
             {favCount > 0 && <span className="tab-badge">{favCount}</span>}
           </button>
           <button
@@ -127,41 +185,110 @@ const NewsSidebar = memo(
             className={`sidebar-tab ${activeTab === 'video' ? 'active' : ''}`}
             onClick={() => setActiveTab('video')}
           >
-            视频流
+            Video
           </button>
         </div>
 
-        {/* Hot news: time filters */}
         {activeTab === 'hot' && (
-          <div className="time-filters">
-            {(['today', 'yesterday', '3days'] as TimeRange[]).map((r) => (
+          <>
+            <div className="time-filters">
+              {(['today', 'yesterday', '3days'] as TimeRange[]).map((range) => (
+                <button
+                  key={range}
+                  type="button"
+                  className={`time-btn ${timeRange === range ? 'active' : ''}`}
+                  onClick={() => setTimeRange(range)}
+                >
+                  {range === 'today' ? 'Today' : range === 'yesterday' ? 'Yesterday' : 'Past 3d'}
+                </button>
+              ))}
+            </div>
+
+            <div className="filter-section">
               <button
-                key={r}
                 type="button"
-                className={`time-btn ${timeRange === r ? 'active' : ''}`}
-                onClick={() => setTimeRange(r)}
+                className="filter-section-toggle"
+                onClick={() => setIsTopicExpanded((prev) => !prev)}
+                aria-expanded={isTopicExpanded}
               >
-                {r === 'today' ? '今日' : r === 'yesterday' ? '昨日' : '过去三天'}
+                <span className={`filter-section-arrow ${isTopicExpanded ? 'expanded' : ''}`} aria-hidden />
+                <span className="filter-section-title">Topics</span>
+                <span className="filter-section-meta">{visibleTagOptions.length + 1}</span>
               </button>
-            ))}
-          </div>
+              <div className={`filter-section-body ${isTopicExpanded ? 'expanded' : ''}`}>
+                <div className="filter-chip-grid">
+                  <button
+                    type="button"
+                    className={`topic-chip topic-chip--all ${selectedTags.length === 0 ? 'active' : ''}`}
+                    onClick={() => void onTagClear()}
+                  >
+                    <span>All</span>
+                  </button>
+                  {visibleTagOptions.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`topic-chip ${selectedTags.includes(value) ? 'active' : ''}`}
+                      onClick={() => void onTagToggle(value)}
+                    >
+                      <span>{label}</span>
+                      <span className="topic-chip-count">{tagCounts[value] ?? 0}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="filter-section">
+              <button
+                type="button"
+                className="filter-section-toggle"
+                onClick={() => setIsSourceExpanded((prev) => !prev)}
+                aria-expanded={isSourceExpanded}
+              >
+                <span className={`filter-section-arrow ${isSourceExpanded ? 'expanded' : ''}`} aria-hidden />
+                <span className="filter-section-title">Sources</span>
+                <span className="filter-section-meta">{visibleSourceOptions.length + 1}</span>
+              </button>
+              <div className={`filter-section-body ${isSourceExpanded ? 'expanded' : ''}`}>
+                <div className="filter-chip-grid">
+                  <button
+                    type="button"
+                    className={`source-chip ${selectedSourceTier === null ? 'active' : ''}`}
+                    onClick={() => void onSourceTierChange(null)}
+                  >
+                    <span>All Sources</span>
+                  </button>
+                  {visibleSourceOptions.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`source-chip ${selectedSourceTier === value ? 'active' : ''}`}
+                      onClick={() => void onSourceTierChange(value)}
+                    >
+                      <span>{label}</span>
+                      <span className="source-chip-count">{tierCounts[value] ?? 0}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
         )}
 
-        {/* Header */}
         <div className="sidebar-header">
           {activeTab === 'hot' && (
             <h2 className="sidebar-title">
-              {timeRange === 'today' ? '今日' : timeRange === 'yesterday' ? '昨日' : '近三天'}
+              {timeRange === 'today' ? 'Today' : timeRange === 'yesterday' ? 'Yesterday' : 'Past 3 days'}
             </h2>
           )}
-          {activeTab === 'favorites' && <h2 className="sidebar-title">收藏夹</h2>}
-          {activeTab === 'video' && <h2 className="sidebar-title">视频流</h2>}
+          {activeTab === 'favorites' && <h2 className="sidebar-title">Favorites</h2>}
+          {activeTab === 'video' && <h2 className="sidebar-title">Video Feed</h2>}
           {activeTab !== 'video' && (
-            <span className="sidebar-count">{filteredEvents.length} 条</span>
+            <span className="sidebar-count">{filteredEvents.length} events</span>
           )}
         </div>
 
-        {/* Content */}
         <div className="sidebar-list">
           {activeTab === 'video' ? (
             <div className="sidebar-video-placeholder">
@@ -170,12 +297,12 @@ const NewsSidebar = memo(
                   <polygon points="5 3 19 12 5 21 5 3" />
                 </svg>
               </div>
-              <p className="video-title">新闻视频流</p>
-              <p className="video-subtitle">即将上线，敬请期待</p>
+              <p className="video-title">Video feed is coming soon</p>
+              <p className="video-subtitle">This area is reserved for future short-form updates.</p>
             </div>
           ) : filteredEvents.length === 0 ? (
             <div className="sidebar-empty">
-              <p>{activeTab === 'favorites' ? '暂无收藏' : '暂无热点新闻'}</p>
+              <p>{activeTab === 'favorites' ? 'No favorites yet' : 'No events in this view'}</p>
             </div>
           ) : (
             filteredEvents.map((event) => (
@@ -185,15 +312,29 @@ const NewsSidebar = memo(
                 onClick={() => onEventClick(event.id)}
               >
                 <div className="item-header">
-                  <span className="item-country">{event.main_country || '未知'}</span>
-                  <span className="item-time">{formatTime(event.first_seen_at)}</span>
+                  <span className="item-country">{event.main_country || 'Unknown'}</span>
+                  <span className="item-time">{formatRelativeTime(event.first_seen_at, now)}</span>
                 </div>
                 <h3 className="item-title">{event.title}</h3>
+                {!!event.tags?.length && (
+                  <div className="item-tags">
+                    {event.tags.slice(0, 3).map((tag) => (
+                      <span key={`${event.id}-${tag}`} className="item-tag">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div className="item-footer">
-                  <span className="item-heat">热度 {event.heat_score}</span>
-                  <span className="item-articles">{event.article_count} 篇</span>
+                  {event.source_tier && (
+                    <span className={`item-tier item-tier--${event.source_tier}`}>
+                      {event.source_tier}
+                    </span>
+                  )}
+                  <span className="item-heat">Heat {event.heat_score}</span>
+                  <span className="item-articles">{event.article_count} articles</span>
                   {favorites.has(event.id) && (
-                    <span className="item-star favorited" title="已收藏">★</span>
+                    <span className="item-star favorited" title="Favorited">Star</span>
                   )}
                 </div>
               </div>

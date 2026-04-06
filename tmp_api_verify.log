@@ -1,0 +1,5 @@
+INFO:     Started server process [5760]
+INFO:     Waiting for application startup.
+2026-04-03 20:20:27,733 - app.main - INFO - Starting GlobalReporter API Service...
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.

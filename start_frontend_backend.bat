@@ -47,10 +47,12 @@ if not "%WEB_PORT%"=="!FREE_WEB_PORT!" (
 )
 
 echo Launching API...
-start "GlobalReporter API" /D "%API_DIR%" cmd /k ""%API_PYTHON%" -m uvicorn app.main:app --host 0.0.0.0 --port !FREE_API_PORT!"
+set "PORT=!FREE_API_PORT!"
+set "API_BASE_URL=http://127.0.0.1:!FREE_API_PORT!"
+start "GlobalReporter API" /D "%API_DIR%" "%API_PYTHON%" -m uvicorn app.main:app --host 0.0.0.0 --port !FREE_API_PORT!
 
 echo Launching Web...
-start "GlobalReporter Web" /D "%WEB_DIR%" cmd /k "set VITE_API_PROXY_TARGET=http://localhost:!FREE_API_PORT! && call npm run dev -- --port !FREE_WEB_PORT! --strictPort"
+start "GlobalReporter Web" /D "%WEB_DIR%" cmd /k "set VITE_API_PROXY_TARGET=http://localhost:!FREE_API_PORT!&& call npm run dev -- --port !FREE_WEB_PORT! --strictPort"
 
 echo Waiting for services to start...
 timeout /t 6 /nobreak >nul

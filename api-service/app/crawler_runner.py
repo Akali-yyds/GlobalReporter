@@ -59,6 +59,7 @@ _BACKGROUND_ROTATION: List[str] = [
 _bg_spider_cycle = itertools.cycle(_BACKGROUND_ROTATION)
 
 _runner_lock = threading.Lock()
+_video_runner_lock = threading.Lock()
 _bg_thread: Optional[threading.Thread] = None
 _stop_flag = threading.Event()
 
@@ -384,6 +385,9 @@ def trigger_crawl_once(
 
 def _background_loop():
     from app.config import settings
+    from app.database import SessionLocal
+    from app.services.video_probe_service import run_due_video_probe_jobs
+    from app.services.video_source_service import ensure_video_seed_data
 
     interval = max(60, int(settings.CRAWLER_INTERVAL_SECONDS))
     spider = settings.CRAWLER_SPIDER
@@ -409,6 +413,27 @@ def _background_loop():
                 _runner_lock.release()
         else:
             logger.debug("Skipping scheduled crawl: manual run in progress")
+
+        if _video_runner_lock.acquire(blocking=False):
+            try:
+                db = SessionLocal()
+                try:
+                    ensure_video_seed_data(db)
+                    results = run_due_video_probe_jobs(db)
+                    if results:
+                        ok_count = sum(1 for item in results if item.get("ok"))
+                        logger.info(
+                            "Video probe tick completed: total=%s ok=%s failed=%s",
+                            len(results),
+                            ok_count,
+                            len(results) - ok_count,
+                        )
+                finally:
+                    db.close()
+            except Exception:
+                logger.exception("Video probe tick failed")
+            finally:
+                _video_runner_lock.release()
 
         if _stop_flag.wait(timeout=interval):
             break

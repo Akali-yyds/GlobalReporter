@@ -44,6 +44,35 @@ function countryCode(feature: GeoFeature): string {
   return String(p?.ISO_A3 || p?.ADM0_A3 || p?.NAME || '');
 }
 
+function normalizeByLog(value: number, maxValue: number): number {
+  if (value <= 0 || maxValue <= 0) return 0;
+  return Math.min(1, Math.log1p(value) / Math.log1p(maxValue));
+}
+
+function resolveCompositeIntensity(
+  heat: number,
+  count: number,
+  maxHeat: number,
+  maxCount: number,
+): number {
+  if (heat <= 0 && count <= 0) return 0;
+  const heatNorm = normalizeByLog(heat, maxHeat);
+  const countNorm = normalizeByLog(count, maxCount);
+  return Math.min(1, Math.max(0.06, heatNorm * 0.68 + countNorm * 0.32));
+}
+
+function compositeToRgba(score: number): { r: number; g: number; b: number; a: number } {
+  if (score <= 0) return { r: 2, g: 2, b: 4, a: 0.96 };
+  if (score < 0.12) return { r: 45, g: 110, b: 255, a: 0.38 };
+  if (score < 0.24) return { r: 38, g: 190, b: 255, a: 0.48 };
+  if (score < 0.40) return { r: 54, g: 205, b: 110, a: 0.56 };
+  if (score < 0.58) return { r: 215, g: 225, b: 64, a: 0.66 };
+  if (score < 0.78) return { r: 247, g: 156, b: 45, a: 0.80 };
+  return { r: 235, g: 56, b: 42, a: 0.94 };
+}
+
+void heatToRgba;
+
 /** Normalize heat to [0,1] — any active country glows visibly. */
 function normalizeHeat(heat: number): number {
   if (heat <= 0) return 0;
@@ -88,6 +117,36 @@ const ZH_NAMES: Record<string, string> = {
 
 
 /** Compute bbox center of a GeoJSON feature geometry */
+function computeLngBounds(lngs: number[]): { min: number; max: number; span: number; center: number } | null {
+  if (lngs.length === 0) return null;
+
+  const rawMin = Math.min(...lngs);
+  const rawMax = Math.max(...lngs);
+  const rawSpan = rawMax - rawMin;
+
+  if (rawSpan <= 180) {
+    return {
+      min: rawMin,
+      max: rawMax,
+      span: rawSpan,
+      center: (rawMin + rawMax) / 2,
+    };
+  }
+
+  const shifted = lngs.map((lng) => (lng < 0 ? lng + 360 : lng));
+  const shiftedMin = Math.min(...shifted);
+  const shiftedMax = Math.max(...shifted);
+  const shiftedCenter = (shiftedMin + shiftedMax) / 2;
+  const normalizedCenter = shiftedCenter > 180 ? shiftedCenter - 360 : shiftedCenter;
+
+  return {
+    min: shiftedMin,
+    max: shiftedMax,
+    span: shiftedMax - shiftedMin,
+    center: normalizedCenter,
+  };
+}
+
 function getFeatureBboxCenter(feat: GeoFeature): { lat: number; lng: number } | null {
   try {
     const geom = feat.geometry as any;
@@ -103,9 +162,11 @@ function getFeatureBboxCenter(feat: GeoFeature): { lat: number; lng: number } | 
     if (!coords.length) return null;
     const lngs = coords.map((c) => c[0]);
     const lats = coords.map((c) => c[1]);
+    const lngBounds = computeLngBounds(lngs);
+    if (!lngBounds) return null;
     return {
       lat: (Math.min(...lats) + Math.max(...lats)) / 2,
-      lng: (Math.min(...lngs) + Math.max(...lngs)) / 2,
+      lng: lngBounds.center,
     };
   } catch {
     return null;
@@ -128,9 +189,11 @@ function getFeatureAltitude(feat: GeoFeature): number {
     if (!coords.length) return 1.0;
     const lngs = coords.map((c) => c[0]);
     const lats = coords.map((c) => c[1]);
+    const lngBounds = computeLngBounds(lngs);
+    if (!lngBounds) return 1.0;
     const span = Math.max(
       Math.max(...lats) - Math.min(...lats),
-      Math.max(...lngs) - Math.min(...lngs)
+      lngBounds.span
     );
     return Math.max(0.3, Math.min(2.4, span / 58));
   } catch {
@@ -173,6 +236,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
 
   const {
     countryHeatMap,
+    countryEventCountMap,
     countryHotspots,
     fetchCountryHotspots,
     selectCountry,
@@ -182,9 +246,27 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
     selectedCountryCode,
     admin1Features,
     admin1HeatMap,
+    admin1EventCountMap,
     admin1Hotspots,
     isLoadingAdmin1,
   } = useGeoLayerStore();
+
+  const maxCountryHeat = useMemo(
+    () => Math.max(1, ...countryHotspots.map((item) => item.heat_total || 0)),
+    [countryHotspots]
+  );
+  const maxCountryEventCount = useMemo(
+    () => Math.max(1, ...countryHotspots.map((item) => item.event_count || 0)),
+    [countryHotspots]
+  );
+  const maxAdmin1Heat = useMemo(
+    () => Math.max(1, ...admin1Hotspots.map((item) => item.heat_total || 0)),
+    [admin1Hotspots]
+  );
+  const maxAdmin1EventCount = useMemo(
+    () => Math.max(1, ...admin1Hotspots.map((item) => item.event_count || 0)),
+    [admin1Hotspots]
+  );
 
   const globeMaterial = useMemo(
     () =>
@@ -306,17 +388,30 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
     [admin1HeatMap, admin1Code]
   );
 
+  const getAdmin1EventCount = useCallback(
+    (feat: GeoFeature): number => {
+      const code = admin1Code(feat);
+      const hit = admin1EventCountMap.get(code);
+      if (hit !== undefined) return hit;
+      const name = String(feat.properties?.['name'] || feat.properties?.['NAME'] || '').toLowerCase();
+      return name ? (admin1EventCountMap.get(name) ?? 0) : 0;
+    },
+    [admin1EventCountMap, admin1Code]
+  );
+
   const polygonCapColor = useCallback(
     (d: object) => {
       const feat = d as GeoFeature;
       if (layer === 'country') {
         const a1code = admin1Code(feat);
         const heat = getAdmin1Heat(feat);
+        const count = getAdmin1EventCount(feat);
         const isHover = hoveredAdmin1 === a1code && !!a1code;
         const isSelected = !!selectedAdmin1Code && selectedAdmin1Code === a1code;
         if (isSelected) return 'rgba(255, 230, 130, 0.72)';
-        if (heat > 0) {
-          const { r, g, b, a } = heatToRgba(heat);
+        if (heat > 0 || count > 0) {
+          const score = resolveCompositeIntensity(heat, count, maxAdmin1Heat, maxAdmin1EventCount);
+          const { r, g, b, a } = compositeToRgba(score);
           if (isHover) return `rgba(${Math.min(255, r + 50)},${Math.min(255, g + 50)},${Math.min(255, b + 40)},${Math.min(0.95, a + 0.2)})`;
           return `rgba(${r},${g},${b},${a})`;
         }
@@ -325,16 +420,32 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
       }
       const code = countryCode(feat).toUpperCase();
       const heat = countryHeatMap.get(code) ?? 0;
+      const count = countryEventCountMap.get(code) ?? 0;
       const isHover = !!hoveredCountry && code === hoveredCountry.toUpperCase();
-      if (heat > 0) {
-        const { r, g, b, a } = heatToRgba(heat);
+      if (heat > 0 || count > 0) {
+        const score = resolveCompositeIntensity(heat, count, maxCountryHeat, maxCountryEventCount);
+        const { r, g, b, a } = compositeToRgba(score);
         if (isHover) return `rgba(${Math.min(255, r + 40)},${Math.min(255, g + 40)},${Math.min(255, b + 30)},${Math.min(0.95, a + 0.2)})`;
         return `rgba(${r},${g},${b},${a})`;
       }
       if (isHover) return 'rgba(255, 255, 255, 0.14)';
       return 'rgba(2, 2, 4, 0.96)';
     },
-    [hoveredCountry, hoveredAdmin1, selectedAdmin1Code, countryHeatMap, admin1HeatMap, layer, admin1Code]
+    [
+      hoveredCountry,
+      hoveredAdmin1,
+      selectedAdmin1Code,
+      countryHeatMap,
+      countryEventCountMap,
+      layer,
+      admin1Code,
+      getAdmin1Heat,
+      getAdmin1EventCount,
+      maxCountryHeat,
+      maxCountryEventCount,
+      maxAdmin1Heat,
+      maxAdmin1EventCount,
+    ]
   );
 
   const polygonSideColor = useCallback(
@@ -343,17 +454,19 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
       if (layer === 'country') {
         const a1code = admin1Code(feat);
         const heat = getAdmin1Heat(feat);
+        const count = getAdmin1EventCount(feat);
         const isHover = hoveredAdmin1 === a1code && !!a1code;
-        if (heat > 0) return isHover ? 'rgba(255, 160, 40, 0.28)' : 'rgba(60, 40, 10, 0.35)';
+        if (heat > 0 || count > 0) return isHover ? 'rgba(255, 160, 40, 0.28)' : 'rgba(60, 40, 10, 0.35)';
         return isHover ? 'rgba(255, 200, 80, 0.12)' : 'rgba(0,0,0,0.85)';
       }
       const code = countryCode(feat).toUpperCase();
       const heat = countryHeatMap.get(code) ?? 0;
+      const count = countryEventCountMap.get(code) ?? 0;
       const isHover = !!hoveredCountry && code === hoveredCountry.toUpperCase();
-      if (heat > 0) return isHover ? 'rgba(120, 170, 255, 0.2)' : 'rgba(20, 40, 80, 0.35)';
+      if (heat > 0 || count > 0) return isHover ? 'rgba(120, 170, 255, 0.2)' : 'rgba(20, 40, 80, 0.35)';
       return isHover ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.92)';
     },
-    [hoveredCountry, hoveredAdmin1, countryHeatMap, admin1HeatMap, layer, admin1Code]
+    [hoveredCountry, hoveredAdmin1, countryHeatMap, countryEventCountMap, layer, admin1Code, getAdmin1Heat, getAdmin1EventCount]
   );
 
   const polygonStrokeColor = useCallback(
@@ -362,19 +475,21 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
       if (layer === 'country') {
         const a1code = admin1Code(feat);
         const heat = getAdmin1Heat(feat);
+        const count = getAdmin1EventCount(feat);
         const isHover = hoveredAdmin1 === a1code && !!a1code;
         const isSelected = !!selectedAdmin1Code && selectedAdmin1Code === a1code;
         if (isSelected) return 'rgba(255, 240, 160, 1.0)';
-        if (heat > 0) return isHover ? 'rgba(255, 220, 120, 0.95)' : 'rgba(200, 150, 60, 0.6)';
+        if (heat > 0 || count > 0) return isHover ? 'rgba(255, 220, 120, 0.95)' : 'rgba(200, 150, 60, 0.6)';
         return isHover ? 'rgba(255, 220, 80, 0.92)' : 'rgba(120, 100, 60, 0.4)';
       }
       const code = countryCode(feat).toUpperCase();
       const heat = countryHeatMap.get(code) ?? 0;
+      const count = countryEventCountMap.get(code) ?? 0;
       const isHover = !!hoveredCountry && code === hoveredCountry.toUpperCase();
-      if (heat > 0) return isHover ? 'rgba(200, 230, 255, 0.95)' : 'rgba(140, 180, 255, 0.65)';
+      if (heat > 0 || count > 0) return isHover ? 'rgba(200, 230, 255, 0.95)' : 'rgba(140, 180, 255, 0.65)';
       return isHover ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.38)';
     },
-    [hoveredCountry, hoveredAdmin1, selectedAdmin1Code, countryHeatMap, admin1HeatMap, layer, admin1Code]
+    [hoveredCountry, hoveredAdmin1, selectedAdmin1Code, countryHeatMap, countryEventCountMap, layer, admin1Code, getAdmin1Heat, getAdmin1EventCount]
   );
 
   const polygonAltitude = useCallback(
@@ -383,16 +498,19 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
       if (layer === 'country') {
         const a1code = admin1Code(feat);
         const heat = getAdmin1Heat(feat);
+        const count = getAdmin1EventCount(feat);
         const isHover = hoveredAdmin1 === a1code && !!a1code;
         const isSelected = !!selectedAdmin1Code && selectedAdmin1Code === a1code;
         if (isSelected) return 0.04;
-        return isHover ? 0.028 : heat > 0 ? 0.008 : 0.005;
+        return isHover ? 0.028 : (heat > 0 || count > 0) ? 0.008 : 0.005;
       }
       const code = countryCode(feat).toUpperCase();
+      const heat = countryHeatMap.get(code) ?? 0;
+      const count = countryEventCountMap.get(code) ?? 0;
       const isHover = !!hoveredCountry && code === hoveredCountry.toUpperCase();
-      return isHover ? 0.022 : 0.0035;
+      return isHover ? 0.022 : (heat > 0 || count > 0) ? 0.0055 : 0.0035;
     },
-    [hoveredCountry, hoveredAdmin1, selectedAdmin1Code, layer, admin1Code]
+    [hoveredCountry, hoveredAdmin1, selectedAdmin1Code, layer, admin1Code, getAdmin1Heat, getAdmin1EventCount, countryHeatMap, countryEventCountMap]
   );
 
   const polygonLabel = useCallback(

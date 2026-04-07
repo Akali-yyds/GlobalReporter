@@ -6,6 +6,9 @@ from app.models.source_feed_profile import SourceFeedProfile
 from app.models.source_feed_health import SourceFeedHealth
 from app.models.source_job_profile import SourceJobProfile
 from app.models.source_job_checkpoint import SourceJobCheckpoint
+from app.models.video_source import VideoSource
+from app.models.video_job_profile import VideoJobProfile
+from app.models.video_job_checkpoint import VideoJobCheckpoint
 from app.models.news_article import NewsArticle
 from app.models.news_event import NewsEvent
 from app.models.event_article import EventArticle
@@ -21,6 +24,9 @@ __all__ = [
     "SourceFeedHealth",
     "SourceJobProfile",
     "SourceJobCheckpoint",
+    "VideoSource",
+    "VideoJobProfile",
+    "VideoJobCheckpoint",
     "NewsArticle",
     "NewsEvent",
     "EventArticle",

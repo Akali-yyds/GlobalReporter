@@ -22,12 +22,14 @@ interface GeoLayerState {
   // Country-level aggregated hotspots (for polygon tinting)
   countryHotspots: CountryHotspotItem[];
   countryHeatMap: Map<string, number>; // iso_a3 -> heat_total
+  countryEventCountMap: Map<string, number>; // iso_a3 -> event_count
 
   // Admin1 drill-down state
   selectedCountryCode: string | null;   // ISO-3166-1 alpha-2
   selectedCountryName: string | null;
   admin1Hotspots: Admin1HotspotItem[];
   admin1HeatMap: Map<string, number>;   // admin1_code -> heat_total
+  admin1EventCountMap: Map<string, number>; // admin1_code -> event_count
   cityHotspots: CityHotspotItem[];       // city-level hotspots within selected country
 
   // Admin1 GeoJSON features (loaded on demand)
@@ -62,10 +64,12 @@ export const useGeoLayerStore = create<GeoLayerState>((set) => ({
   layer: 'global',
   countryHotspots: [],
   countryHeatMap: new Map(),
+  countryEventCountMap: new Map(),
   selectedCountryCode: null,
   selectedCountryName: null,
   admin1Hotspots: [],
   admin1HeatMap: new Map(),
+  admin1EventCountMap: new Map(),
   cityHotspots: [],
   admin1GeoJsonUrl: null,
   admin1GeoJsonReady: false,
@@ -80,10 +84,20 @@ export const useGeoLayerStore = create<GeoLayerState>((set) => ({
       const resp = await hotspotsApi.getCountryHotspots({ scope, limit: 100, since_hours: hoursSinceBeijingMidnight() });
       const data = resp as unknown as CountryHotspotListResponse;
       const heatMap = new Map<string, number>();
+      const eventCountMap = new Map<string, number>();
       for (const c of data.countries) {
-        if (c.iso_a3) heatMap.set(c.iso_a3.toUpperCase(), c.heat_total);
+        if (c.iso_a3) {
+          const iso3 = c.iso_a3.toUpperCase();
+          heatMap.set(iso3, c.heat_total);
+          eventCountMap.set(iso3, c.event_count);
+        }
       }
-      set({ countryHotspots: data.countries, countryHeatMap: heatMap, isLoadingCountries: false });
+      set({
+        countryHotspots: data.countries,
+        countryHeatMap: heatMap,
+        countryEventCountMap: eventCountMap,
+        isLoadingCountries: false,
+      });
     } catch (err) {
       set({
         error: err instanceof Error ? err.message : 'Failed to fetch country hotspots',
@@ -139,11 +153,19 @@ export const useGeoLayerStore = create<GeoLayerState>((set) => ({
         : [];
 
     const admin1HeatMap = new Map<string, number>();
+    const admin1EventCountMap = new Map<string, number>();
     for (const a of admin1List) {
-      if (a.admin1_code) admin1HeatMap.set(a.admin1_code, a.heat_total);
+      if (a.admin1_code) {
+        admin1HeatMap.set(a.admin1_code, a.heat_total);
+        admin1EventCountMap.set(a.admin1_code, a.event_count);
+      }
       // Also index by English name (lowercase) so Natural Earth iso_3166_2 mismatches
       // (e.g. CN: GeoNames "22" vs NE "BJ") can fall back to name-based lookup
-      if (a.admin1_name) admin1HeatMap.set(a.admin1_name.toLowerCase(), a.heat_total);
+      if (a.admin1_name) {
+        const key = a.admin1_name.toLowerCase();
+        admin1HeatMap.set(key, a.heat_total);
+        admin1EventCountMap.set(key, a.event_count);
+      }
     }
 
     const admin1Features: GeoFeature[] =
@@ -152,6 +174,7 @@ export const useGeoLayerStore = create<GeoLayerState>((set) => ({
     set({
       admin1Hotspots: admin1List,
       admin1HeatMap,
+      admin1EventCountMap,
       cityHotspots: cityList,
       admin1GeoJsonReady: geoResult.status === 'fulfilled',
       admin1Features,
@@ -167,6 +190,7 @@ export const useGeoLayerStore = create<GeoLayerState>((set) => ({
       selectedCountryName: null,
       admin1Hotspots: [],
       admin1HeatMap: new Map(),
+      admin1EventCountMap: new Map(),
       cityHotspots: [],
       admin1GeoJsonUrl: null,
       admin1GeoJsonReady: false,

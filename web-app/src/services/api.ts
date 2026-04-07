@@ -1,6 +1,7 @@
 // API service layer
 import axios, { AxiosInstance } from 'axios';
 import type { SourceTier } from '../types/news';
+import type { VideoRolloutState, VideoType } from '../types/video';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -102,4 +103,30 @@ export const jobsApi = {
       crawl_scope: options?.crawlScope ?? undefined,
       spider: options?.spider ?? undefined,
     }),
+};
+
+// Videos API
+export const videoApi = {
+  getSources: (params?: {
+    provider?: string;
+    video_type?: VideoType;
+    rollout_state?: VideoRolloutState;
+    region?: string;
+    topic?: string;
+  }) => apiClient.get('/videos/sources', { params }),
+
+  getSource: (sourceCode: string) => apiClient.get(`/videos/sources/${sourceCode}`),
+
+  getHealth: (params?: {
+    provider?: string;
+    video_type?: VideoType;
+    rollout_state?: VideoRolloutState;
+    region?: string;
+    topic?: string;
+  }) => apiClient.get('/videos/health', { params }),
+
+  probeSource: (sourceCode: string) => apiClient.post(`/videos/probe/${sourceCode}`),
+
+  patchSource: (sourceCode: string, payload: Record<string, unknown>) =>
+    apiClient.patch(`/videos/sources/${sourceCode}`, payload),
 };

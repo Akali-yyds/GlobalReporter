@@ -34,6 +34,14 @@ from app.schemas.source import (
     SourceAnalyticsItem,
     SourceTierAnalyticsItem,
 )
+from app.schemas.video import (
+    VideoSourceResponse,
+    VideoSourcePatchRequest,
+    VideoProbeCheckpointResponse,
+    VideoSourceWithHealthResponse,
+    VideoHealthResponse,
+    VideoProbeResponse,
+)
 
 __all__ = [
     "PaginatedResponse",
@@ -64,4 +72,10 @@ __all__ = [
     "SourceAnalyticsResponse",
     "SourceAnalyticsItem",
     "SourceTierAnalyticsItem",
+    "VideoSourceResponse",
+    "VideoSourcePatchRequest",
+    "VideoProbeCheckpointResponse",
+    "VideoSourceWithHealthResponse",
+    "VideoHealthResponse",
+    "VideoProbeResponse",
 ]

@@ -11,3 +11,4 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 os.environ["DEBUG"] = "false"
 os.environ["LOG_LEVEL"] = "ERROR"
+os.environ["CRAWLER_ENABLED"] = "false"

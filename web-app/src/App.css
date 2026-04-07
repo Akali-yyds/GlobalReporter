@@ -30,6 +30,31 @@
   gap: 12px;
 }
 
+.header-view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.header-view-btn {
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.header-view-btn.is-active {
+  color: var(--text-primary);
+  background: rgba(80, 130, 230, 0.24);
+  border-color: rgba(120, 170, 255, 0.42);
+}
+
 .header-refresh {
   display: flex;
   align-items: center;
@@ -98,6 +123,13 @@
   isolation: isolate;
   overflow: hidden;
   /* Stars live in ::before so they stay visible through transparent WebGL clear */
+  background: #020208;
+}
+
+.app-video-view {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
   background: #020208;
 }
 

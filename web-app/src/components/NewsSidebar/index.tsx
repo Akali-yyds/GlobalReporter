@@ -1,5 +1,7 @@
 import { memo, useEffect, useState } from 'react';
 import type { NewsEvent, SourceTier } from '../../types/news';
+import type { VideoRolloutState, VideoType } from '../../types/video';
+import LiveVideos from '../../pages/LiveVideos';
 import { isEventInTimeRange, parseApiDate, type NewsTimeRange } from '../../utils/timeUtils';
 import './NewsSidebar.css';
 
@@ -7,13 +9,23 @@ interface NewsSidebarProps {
   events: NewsEvent[];
   total?: number;
   selectedEventId?: string;
+  activeTab: 'hot' | 'favorites' | 'video';
   timeRange: NewsTimeRange;
   selectedTags: string[];
   selectedSourceTier: SourceTier | null;
+  videoProvider: 'all' | 'youtube' | 'direct_hls';
+  videoType: 'all' | VideoType;
+  videoRolloutState: 'all' | VideoRolloutState;
+  videoTopic: string | null;
   onTimeRangeChange: (timeRange: NewsTimeRange) => void;
+  onTabChange: (tab: 'hot' | 'favorites' | 'video') => void;
   onTagToggle: (tag: string) => void | Promise<void>;
   onTagClear: () => void | Promise<void>;
   onSourceTierChange: (tier: SourceTier | null) => void | Promise<void>;
+  onVideoProviderChange: (provider: 'all' | 'youtube' | 'direct_hls') => void;
+  onVideoTypeChange: (videoType: 'all' | VideoType) => void;
+  onVideoRolloutStateChange: (rolloutState: 'all' | VideoRolloutState) => void;
+  onVideoTopicChange: (topic: string | null) => void;
   onEventClick: (eventId: string) => void;
 }
 
@@ -37,6 +49,33 @@ const SOURCE_TIER_OPTIONS: Array<{ value: SourceTier; label: string }> = [
   { value: 'community', label: 'Community' },
   { value: 'social', label: 'Social' },
 ];
+const VIDEO_PROVIDER_OPTIONS = [
+  { value: 'all', label: 'All Providers' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'direct_hls', label: 'Direct HLS' },
+] as const;
+const VIDEO_TYPE_OPTIONS = [
+  { value: 'all', label: 'All Types' },
+  { value: 'youtube_embed', label: 'YouTube Embed' },
+  { value: 'hls', label: 'HLS' },
+] as const;
+const VIDEO_ROLLOUT_OPTIONS = [
+  { value: 'all', label: 'All Rollouts' },
+  { value: 'default', label: 'Default' },
+  { value: 'canary', label: 'Canary' },
+  { value: 'poc', label: 'PoC' },
+  { value: 'paused', label: 'Paused' },
+] as const;
+const VIDEO_TOPIC_OPTIONS = [
+  { value: null, label: 'All Topics' },
+  { value: 'news', label: 'News' },
+  { value: 'finance', label: 'Finance' },
+  { value: 'breaking', label: 'Breaking' },
+  { value: 'space', label: 'Space' },
+  { value: 'official', label: 'Official' },
+  { value: 'live', label: 'Live' },
+  { value: 'hls', label: 'HLS' },
+] as const;
 
 function loadFavorites(): Set<string> {
   try {
@@ -73,19 +112,32 @@ const NewsSidebar = memo(
     events,
     total: _total,
     selectedEventId,
+    activeTab,
     timeRange,
     selectedTags,
     selectedSourceTier,
+    videoProvider,
+    videoType,
+    videoRolloutState,
+    videoTopic,
     onTimeRangeChange,
+    onTabChange,
     onTagToggle,
     onTagClear,
     onSourceTierChange,
+    onVideoProviderChange,
+    onVideoTypeChange,
+    onVideoRolloutStateChange,
+    onVideoTopicChange,
     onEventClick,
   }: NewsSidebarProps) => {
-    const [activeTab, setActiveTab] = useState<'hot' | 'favorites' | 'video'>('hot');
     const [favorites, setFavorites] = useState<Set<string>>(() => loadFavorites());
     const [isTopicExpanded, setIsTopicExpanded] = useState(true);
     const [isSourceExpanded, setIsSourceExpanded] = useState(false);
+    const [isVideoProviderExpanded, setIsVideoProviderExpanded] = useState(true);
+    const [isVideoTypeExpanded, setIsVideoTypeExpanded] = useState(true);
+    const [isVideoRolloutExpanded, setIsVideoRolloutExpanded] = useState(false);
+    const [isVideoTopicExpanded, setIsVideoTopicExpanded] = useState(false);
 
     useEffect(() => {
       const handler = (e: Event) => {
@@ -143,24 +195,24 @@ const NewsSidebar = memo(
           <button
             type="button"
             className={`sidebar-tab ${activeTab === 'hot' ? 'active' : ''}`}
-            onClick={() => setActiveTab('hot')}
+            onClick={() => onTabChange('hot')}
           >
-            Hot
-          </button>
-          <button
-            type="button"
-            className={`sidebar-tab ${activeTab === 'favorites' ? 'active' : ''}`}
-            onClick={() => setActiveTab('favorites')}
-          >
-            Favorites
-            {favCount > 0 && <span className="tab-badge">{favCount}</span>}
+            News
           </button>
           <button
             type="button"
             className={`sidebar-tab ${activeTab === 'video' ? 'active' : ''}`}
-            onClick={() => setActiveTab('video')}
+            onClick={() => onTabChange('video')}
           >
-            Video
+            Live
+          </button>
+          <button
+            type="button"
+            className={`sidebar-tab ${activeTab === 'favorites' ? 'active' : ''}`}
+            onClick={() => onTabChange('favorites')}
+          >
+            Favorites
+            {favCount > 0 && <span className="tab-badge">{favCount}</span>}
           </button>
         </div>
 
@@ -251,6 +303,114 @@ const NewsSidebar = memo(
           </>
         )}
 
+        {activeTab === 'video' && (
+          <>
+            <div className="filter-section">
+              <button
+                type="button"
+                className="filter-section-toggle"
+                onClick={() => setIsVideoProviderExpanded((prev) => !prev)}
+                aria-expanded={isVideoProviderExpanded}
+              >
+                <span className={`filter-section-arrow ${isVideoProviderExpanded ? 'expanded' : ''}`} aria-hidden />
+                <span className="filter-section-title">Providers</span>
+              </button>
+              <div className={`filter-section-body ${isVideoProviderExpanded ? 'expanded' : ''}`}>
+                <div className="filter-chip-grid">
+                  {VIDEO_PROVIDER_OPTIONS.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`source-chip ${videoProvider === value ? 'active' : ''}`}
+                      onClick={() => onVideoProviderChange(value)}
+                    >
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="filter-section">
+              <button
+                type="button"
+                className="filter-section-toggle"
+                onClick={() => setIsVideoTypeExpanded((prev) => !prev)}
+                aria-expanded={isVideoTypeExpanded}
+              >
+                <span className={`filter-section-arrow ${isVideoTypeExpanded ? 'expanded' : ''}`} aria-hidden />
+                <span className="filter-section-title">Video Type</span>
+              </button>
+              <div className={`filter-section-body ${isVideoTypeExpanded ? 'expanded' : ''}`}>
+                <div className="filter-chip-grid">
+                  {VIDEO_TYPE_OPTIONS.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`source-chip ${videoType === value ? 'active' : ''}`}
+                      onClick={() => onVideoTypeChange(value)}
+                    >
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="filter-section">
+              <button
+                type="button"
+                className="filter-section-toggle"
+                onClick={() => setIsVideoRolloutExpanded((prev) => !prev)}
+                aria-expanded={isVideoRolloutExpanded}
+              >
+                <span className={`filter-section-arrow ${isVideoRolloutExpanded ? 'expanded' : ''}`} aria-hidden />
+                <span className="filter-section-title">Rollout</span>
+              </button>
+              <div className={`filter-section-body ${isVideoRolloutExpanded ? 'expanded' : ''}`}>
+                <div className="filter-chip-grid">
+                  {VIDEO_ROLLOUT_OPTIONS.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`source-chip ${videoRolloutState === value ? 'active' : ''}`}
+                      onClick={() => onVideoRolloutStateChange(value)}
+                    >
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="filter-section">
+              <button
+                type="button"
+                className="filter-section-toggle"
+                onClick={() => setIsVideoTopicExpanded((prev) => !prev)}
+                aria-expanded={isVideoTopicExpanded}
+              >
+                <span className={`filter-section-arrow ${isVideoTopicExpanded ? 'expanded' : ''}`} aria-hidden />
+                <span className="filter-section-title">Topics</span>
+              </button>
+              <div className={`filter-section-body ${isVideoTopicExpanded ? 'expanded' : ''}`}>
+                <div className="filter-chip-grid">
+                  {VIDEO_TOPIC_OPTIONS.map(({ value, label }) => (
+                    <button
+                      key={value ?? 'all'}
+                      type="button"
+                      className={`topic-chip ${videoTopic === value ? 'active' : ''}`}
+                      onClick={() => onVideoTopicChange(value)}
+                    >
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
         <div className="sidebar-header">
           {activeTab === 'hot' && (
             <h2 className="sidebar-title">
@@ -258,7 +418,7 @@ const NewsSidebar = memo(
             </h2>
           )}
           {activeTab === 'favorites' && <h2 className="sidebar-title">Favorites</h2>}
-          {activeTab === 'video' && <h2 className="sidebar-title">Video Feed</h2>}
+          {activeTab === 'video' && <h2 className="sidebar-title">Live Feed</h2>}
           {activeTab !== 'video' && (
             <span className="sidebar-count">{filteredEvents.length} events</span>
           )}
@@ -266,15 +426,13 @@ const NewsSidebar = memo(
 
         <div className="sidebar-list">
           {activeTab === 'video' ? (
-            <div className="sidebar-video-placeholder">
-              <div className="video-icon">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <polygon points="5 3 19 12 5 21 5 3" />
-                </svg>
-              </div>
-              <p className="video-title">Video feed is coming soon</p>
-              <p className="video-subtitle">This area is reserved for future short-form updates.</p>
-            </div>
+            <LiveVideos
+              provider={videoProvider}
+              videoType={videoType}
+              rolloutState={videoRolloutState}
+              topic={videoTopic}
+              variant="sidebar"
+            />
           ) : filteredEvents.length === 0 ? (
             <div className="sidebar-empty">
               <p>{activeTab === 'favorites' ? 'No favorites yet' : 'No events in this view'}</p>

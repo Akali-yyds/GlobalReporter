@@ -16,8 +16,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
 from app.database import init_db
-from app.api import news, globe, sources, jobs, hotspots
+from app.api import news, globe, sources, jobs, hotspots, videos
 from app.crawler_runner import start_background_crawler, stop_background_crawler
+from app.database import SessionLocal
+from app.services.video_source_service import ensure_video_seed_data
 
 # Configure logging with ASCII-safe format to avoid encoding issues
 logging.basicConfig(
@@ -35,6 +37,11 @@ async def lifespan(app: FastAPI):
     logger.info("Starting GlobalReporter API Service...")
     init_db()
     logger.info("Database initialized.")
+    db = SessionLocal()
+    try:
+        ensure_video_seed_data(db)
+    finally:
+        db.close()
     start_background_crawler()
     yield
     # Shutdown
@@ -65,6 +72,7 @@ app.include_router(globe.router, prefix="/api/globe", tags=["Globe"])
 app.include_router(sources.router, prefix="/api/sources", tags=["Sources"])
 app.include_router(jobs.router, prefix="/api/jobs", tags=["Jobs"])
 app.include_router(hotspots.router, prefix="/api/hotspots", tags=["Hotspots"])
+app.include_router(videos.router, prefix="/api/videos", tags=["Videos"])
 
 class GeoDataCacheMiddleware(BaseHTTPMiddleware):
     """Inject Cache-Control headers for static geodata assets."""

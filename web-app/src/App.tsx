@@ -7,6 +7,7 @@ import { useGlobeStore } from './stores/globeStore';
 import { jobsApi, newsApi } from './services/api';
 import { hoursSinceBeijingMidnight, type NewsTimeRange } from './utils/timeUtils';
 import type { Hotspot, SourceTier } from './types/news';
+import type { VideoRolloutState, VideoType } from './types/video';
 import './App.css';
 
 const POLL_MS = 45_000;
@@ -59,6 +60,11 @@ function App() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [manualRefresh, setManualRefresh] = useState(false);
   const [timeRange, setTimeRange] = useState<NewsTimeRange>('today');
+  const [activeTab, setActiveTab] = useState<'hot' | 'favorites' | 'video'>('hot');
+  const [videoProvider, setVideoProvider] = useState<'all' | 'youtube' | 'direct_hls'>('all');
+  const [videoType, setVideoType] = useState<'all' | VideoType>('all');
+  const [videoRolloutState, setVideoRolloutState] = useState<'all' | VideoRolloutState>('all');
+  const [videoTopic, setVideoTopic] = useState<string | null>(null);
   type RegionEntry = { name: string; hotspots: Hotspot[]; geoKey?: string };
   const [regionStack, setRegionStack] = useState<RegionEntry[]>([]);
   const regionPanel = regionStack.length > 0 ? regionStack[regionStack.length - 1] : null;
@@ -167,7 +173,7 @@ function App() {
               );
             }
           })
-          .catch(() => { /* keep seeded hotspots */ });
+          .catch(() => {});
       }
       return;
     }
@@ -198,9 +204,9 @@ function App() {
             );
           }
         })
-        .catch(() => { /* keep seeded hotspots */ });
+        .catch(() => {});
     }
-  }, []);
+  }, [setSelectedEvent]);
 
   const handleCountryBreadcrumbClick = useCallback(() => {
     setRegionStack((prev) => (prev.length > 1 ? [prev[0]] : prev));
@@ -245,6 +251,15 @@ function App() {
     setSourceTier(tier);
   }, [setSourceTier]);
 
+  const handleSidebarTabChange = useCallback((tab: 'hot' | 'favorites' | 'video') => {
+    setActiveTab(tab);
+    if (tab === 'video') {
+      setRegionStack([]);
+      setSelectedEvent(null);
+      setIsDetailOpen(false);
+    }
+  }, [setSelectedEvent]);
+
   const handleCloseDetail = () => {
     setIsDetailOpen(false);
   };
@@ -257,14 +272,15 @@ function App() {
           <button
             type="button"
             className="header-refresh"
-            title="更新新闻（后台爬虫）"
+            title="Update news"
             disabled={manualRefresh || isLoading}
             onClick={handleManualCrawl}
+            style={{ display: activeTab === 'video' ? 'none' : 'inline-flex' }}
           >
             <span className={`header-refresh-icon ${manualRefresh || isLoading ? 'spinning' : ''}`} aria-hidden>
               ↻
             </span>
-            <span className="header-refresh-label">更新</span>
+            <span className="header-refresh-label">Update</span>
           </button>
         </div>
       </header>
@@ -275,13 +291,23 @@ function App() {
             events={events}
             total={total}
             selectedEventId={selectedEvent?.id}
+            activeTab={activeTab}
             timeRange={timeRange}
             selectedTags={selectedTags}
             selectedSourceTier={selectedSourceTier}
+            videoProvider={videoProvider}
+            videoType={videoType}
+            videoRolloutState={videoRolloutState}
+            videoTopic={videoTopic}
             onTimeRangeChange={setTimeRange}
+            onTabChange={handleSidebarTabChange}
             onTagToggle={handleTagToggle}
             onTagClear={handleTagClear}
             onSourceTierChange={handleSourceTierChange}
+            onVideoProviderChange={setVideoProvider}
+            onVideoTypeChange={setVideoType}
+            onVideoRolloutStateChange={setVideoRolloutState}
+            onVideoTopicChange={setVideoTopic}
             onEventClick={handleEventClick}
           />
         </aside>

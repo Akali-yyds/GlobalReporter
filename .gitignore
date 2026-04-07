@@ -1,0 +1,14 @@
+.pytest_cache/
+**/__pycache__/
+*.py[cod]
+
+web-app/dist/
+
+*.log
+tmp_*.log
+
+backfill_result*.json
+quality_result*.json
+
+.DS_Store
+Thumbs.db

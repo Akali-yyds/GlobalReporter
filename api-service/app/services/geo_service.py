@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import case, func, literal
 
 from app.models import NewsEvent, EventGeoMapping, GeoEntity
 
@@ -72,6 +72,11 @@ _ISO2_NAME: Dict[str, str] = {
     "IR": "伊朗", "IQ": "伊拉克", "PK": "巴基斯坦", "BD": "孟加拉国",
 }
 
+_CHINA_ALIAS_ISO2 = {"TW"}
+_CHINA_REGION_CODES = {"CN", "TW"}
+_CHINA_TAIWAN_ADMIN1_CODE = "TW"
+_CHINA_TAIWAN_ADMIN1_NAME = "Taiwan"
+
 
 def get_country_hotspots(
     db: Session,
@@ -91,10 +96,19 @@ def get_country_hotspots(
         cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(hours=since_hours)
         event_q = event_q.filter(NewsEvent.last_seen_at >= cutoff)
 
+    normalized_country_code = case(
+        (GeoEntity.country_code.in_(_CHINA_ALIAS_ISO2), literal("CN")),
+        else_=GeoEntity.country_code,
+    )
+    normalized_country_name = case(
+        (GeoEntity.country_code.in_(_CHINA_ALIAS_ISO2), literal("China")),
+        else_=GeoEntity.country_name,
+    )
+
     subq = (
         db.query(
-            GeoEntity.country_code,
-            GeoEntity.country_name,
+            normalized_country_code.label("country_code"),
+            normalized_country_name.label("country_name"),
             NewsEvent.id.label("event_id"),
             NewsEvent.heat_score,
         )
@@ -116,9 +130,9 @@ def get_country_hotspots(
     )
 
     if scope == "china":
-        agg_q = agg_q.filter(subq.c.country_code.in_(["CN", "TW", "HK"]))
+        agg_q = agg_q.filter(subq.c.country_code.in_(["CN", "HK"]))
     elif scope == "world":
-        agg_q = agg_q.filter(~subq.c.country_code.in_(["CN", "TW", "HK"]))
+        agg_q = agg_q.filter(~subq.c.country_code.in_(["CN", "HK"]))
 
     if min_heat is not None:
         agg_q = agg_q.having(func.sum(subq.c.heat_score) >= min_heat)
@@ -230,6 +244,44 @@ def get_admin1_hotspots(
             "event_count": int(row.event_count or 0),
             "center": list(center) if center else None,
         })
+
+    if cc == "CN" and not any(item.get("admin1_code") == _CHINA_TAIWAN_ADMIN1_CODE for item in result):
+        tw_subq = (
+            db.query(
+                NewsEvent.id.label("event_id"),
+                NewsEvent.heat_score,
+            )
+            .join(EventGeoMapping, EventGeoMapping.event_id == NewsEvent.id)
+            .join(GeoEntity, GeoEntity.id == EventGeoMapping.geo_id)
+            .filter(
+                GeoEntity.country_code == "TW",
+                NewsEvent.id.in_(event_q),
+            )
+            .distinct()
+            .subquery()
+        )
+
+        tw_row = (
+            db.query(
+                func.sum(tw_subq.c.heat_score).label("heat_total"),
+                func.count(tw_subq.c.event_id).label("event_count"),
+            )
+            .one()
+        )
+
+        if int(tw_row.event_count or 0) > 0:
+            tw_center = _ISO2_CENTER.get("TW")
+            result.append({
+                "admin1_code": _CHINA_TAIWAN_ADMIN1_CODE,
+                "admin1_name": _CHINA_TAIWAN_ADMIN1_NAME,
+                "geo_key": f"A1:CN:{_CHINA_TAIWAN_ADMIN1_CODE}",
+                "heat_total": int(tw_row.heat_total or 0),
+                "event_count": int(tw_row.event_count or 0),
+                "center": list(tw_center) if tw_center else None,
+            })
+
+    result.sort(key=lambda item: item["heat_total"], reverse=True)
+    result = result[:limit]
 
     return result
 

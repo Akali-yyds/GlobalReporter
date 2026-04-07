@@ -29,6 +29,8 @@ export default function VideoGrid({
       {sources.map((source) => {
         const location = [source.city, source.country].filter(Boolean).join(' · ') || source.region || 'Unknown region';
         const isSelected = selectedSourceCode === source.source_code;
+        const isActive = activeSourceCodes.includes(source.source_code);
+
         return (
           <article
             key={source.source_code}
@@ -36,7 +38,7 @@ export default function VideoGrid({
             onClick={() => onSelectSource(source)}
           >
             <div className="video-card-player">
-              {renderPlayer(source, activeSourceCodes.includes(source.source_code))}
+              {renderPlayer(source, isActive)}
             </div>
             <div className="video-card-body">
               <div className="video-card-topline">

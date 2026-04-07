@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState, useMemo, type MouseEvent as ReactMouseEvent } from 'react';
+﻿import { useRef, useEffect, useCallback, useState, useMemo, type MouseEvent as ReactMouseEvent } from 'react';
 import Globe from 'react-globe.gl';
 import * as THREE from 'three';
 import { useGlobeStore } from '../../stores/globeStore';
@@ -6,20 +6,20 @@ import { useGeoLayerStore } from '../../stores/geoLayerStore';
 import type { Hotspot } from '../../types/news';
 import './GlobeScene.css';
 
-/** Local-first GeoJSON URL — falls back to GitHub CDN if static assets not yet prepared */
+/** Local-first GeoJSON URL 鈥?falls back to GitHub CDN if static assets not yet prepared */
 const LOCAL_COUNTRIES_GEOJSON = (() => {
   const base = (import.meta.env.VITE_API_URL || '/api').replace(/\/api$/, '');
-  return `${base}/static/geodata/countries/ne_110m_admin_0_countries.geojson`;
+  return `${base}/static/geodata/countries/ne_110m_admin_0_map_units.geojson`;
 })();
 const CDN_COUNTRIES_GEOJSON =
-  'https://raw.githubusercontent.com/vasturiano/react-globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson';
+  'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_map_units.geojson';
 
 interface GlobeSceneProps {
   hotspots: Hotspot[];
   onHotspotClick: (eventId: string) => void;
   onAdmin1RegionClick?: (regionHotspots: Hotspot[], regionName: string, countryName: string, geoKey?: string) => void;
   onBackToGlobal?: () => void;
-  /** Breadcrumb path entries below the country level, e.g. ['广东省', '广州市'] */
+  /** Breadcrumb path entries below the country level, e.g. ['骞夸笢鐪?, '骞垮窞甯?] */
   regionBreadcrumb?: string[];
   /** If provided, a back arrow appears on the last breadcrumb segment to navigate up one level */
   onRegionBreadcrumbBack?: () => void;
@@ -39,9 +39,72 @@ type GeoFeature = {
   };
 };
 
+async function loadGeoFeatures(primaryUrl: string, fallbackUrl: string): Promise<GeoFeature[]> {
+  const tryLoad = async (url: string): Promise<GeoFeature[]> => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('not ok');
+    const data = (await response.json()) as { features?: GeoFeature[] };
+    return data?.features ?? [];
+  };
+
+  try {
+    return await tryLoad(primaryUrl);
+  } catch {
+    return tryLoad(fallbackUrl);
+  }
+}
+
 function countryCode(feature: GeoFeature): string {
   const p = feature.properties;
-  return String(p?.ISO_A3 || p?.ADM0_A3 || p?.NAME || '');
+  const isoA3 = String(p?.ISO_A3 || '').toUpperCase();
+  const adm0A3 = String(p?.ADM0_A3 || '').toUpperCase();
+  if (isoA3 && isoA3 !== '-99') return isoA3;
+  if (adm0A3 && adm0A3 !== '-99') return adm0A3;
+  return String(p?.NAME || '');
+}
+
+function canonicalCountryIso3(code: string): string {
+  return code.toUpperCase() === 'TWN' ? 'CHN' : code.toUpperCase();
+}
+
+function canonicalCountryIso2(code: string): string {
+  return code.toUpperCase() === 'TW' ? 'CN' : code.toUpperCase();
+}
+
+function buildChinaTaiwanRegionFeature(feature: GeoFeature): GeoFeature {
+  return {
+    ...feature,
+    properties: {
+      ...(feature.properties || {}),
+      iso_3166_2: 'CN-TW',
+      NAME: 'Taiwan',
+      name: 'Taiwan',
+      NAME_ZH: '鍙版咕',
+      admin: 'China',
+      geonunit: 'China',
+    },
+  };
+}
+
+function countryDataIso3(feature: GeoFeature): string {
+  const p = feature.properties || {};
+  const isoA3 = String(p.ISO_A3 || '').toUpperCase();
+  const adm0A3 = String(p.ADM0_A3 || '').toUpperCase();
+  const type = String(p.TYPE || '');
+  const base = isoA3 && isoA3 !== '-99' ? isoA3 : adm0A3;
+
+  if (base === 'TWN') return 'CHN';
+  if ((type === 'Dependency' || type === 'Geo unit') && adm0A3 && adm0A3 !== '-99') {
+    return canonicalCountryIso3(adm0A3);
+  }
+  return canonicalCountryIso3(base);
+}
+
+function countryDisplayName(feature: GeoFeature): string {
+  const p = feature.properties || {};
+  const name = String(p.NAME || p.NAME_LONG || p.GEOUNIT || p.ADMIN || '');
+  if (name === 'Taiwan') return 'Taiwan';
+  return name || countryCode(feature);
 }
 
 function normalizeByLog(value: number, maxValue: number): number {
@@ -73,46 +136,229 @@ function compositeToRgba(score: number): { r: number; g: number; b: number; a: n
 
 void heatToRgba;
 
-/** Normalize heat to [0,1] — any active country glows visibly. */
+/** Normalize heat to [0,1] 鈥?any active country glows visibly. */
 function normalizeHeat(heat: number): number {
   if (heat <= 0) return 0;
   return Math.min(1, 0.15 + 0.65 * (1 - Math.exp(-heat / 25)));
 }
 
 /**
- * 5-stage heat gradient: green → cyan → yellow → orange → red.
+ * 5-stage heat gradient: green 鈫?cyan 鈫?yellow 鈫?orange 鈫?red.
  * Each stage has 2 brightness sub-levels for finer granularity.
  */
 function heatToRgba(heat: number): { r: number; g: number; b: number; a: number } {
   const t = normalizeHeat(heat);
-  // Stage 1 — green (very low)
+  // Stage 1 鈥?green (very low)
   if (t < 0.08) return { r: 40,  g: 180, b: 80,  a: 0.32 };
   if (t < 0.18) return { r: 60,  g: 210, b: 90,  a: 0.46 };
-  // Stage 2 — cyan / teal (low)
+  // Stage 2 鈥?cyan / teal (low)
   if (t < 0.30) return { r: 40,  g: 200, b: 180, a: 0.52 };
   if (t < 0.42) return { r: 50,  g: 180, b: 230, a: 0.60 };
-  // Stage 3 — yellow (medium)
+  // Stage 3 鈥?yellow (medium)
   if (t < 0.54) return { r: 210, g: 220, b: 50,  a: 0.65 };
   if (t < 0.65) return { r: 240, g: 230, b: 40,  a: 0.72 };
-  // Stage 4 — orange (high)
+  // Stage 4 鈥?orange (high)
   if (t < 0.76) return { r: 245, g: 155, b: 40,  a: 0.80 };
   if (t < 0.88) return { r: 250, g: 120, b: 30,  a: 0.87 };
-  // Stage 5 — red (very high)
+  // Stage 5 鈥?red (very high)
   if (t < 0.95) return { r: 240, g: 55,  b: 35,  a: 0.92 };
   return               { r: 220, g: 20,  b: 20,  a: 0.97 };
 }
 
-/** English → Chinese name map for hover labels */
+/** Country subtitle labels used in hover text */
 const ZH_NAMES: Record<string, string> = {
-  CHN: '中国', CHN_USA: '美国', GBR: '英国', JPN: '日本', KOR: '韩国',
-  TWN: '台湾', HKG: '香港', DEU: '德国', FRA: '法国', IND: '印度',
-  RUS: '俄罗斯', AUS: '澳大利亚', CAN: '加拿大', BRA: '巴西', ITA: '意大利',
-  ESP: '西班牙', MEX: '墨西哥', IDN: '印度尼西亚', TUR: '土耳其', SAU: '沙特阿拉伯',
-  ZAF: '南非', UKR: '乌克兰', POL: '波兰', NLD: '荷兰', PAK: '巴基斯坦',
-  ARG: '阿根廷', NGA: '尼日利亚', VNM: '越南', THA: '泰国', MYS: '马来西亚',
-  PHI: '菲律宾', SGP: '新加坡', ARE: '阿联酋', IRN: '伊朗', IRQ: '伊拉克',
-  ISR: '以色列', EGY: '埃及', KAZ: '哈萨克斯坦', COL: '哥伦比亚', PER: '秘鲁',
-  CHL: '智利', BGD: '孟加拉国', KEN: '肯尼亚', TWN_USA: '台湾',
+  AFG: '阿富汗',
+  ALB: '阿尔巴尼亚',
+  DZA: '阿尔及利亚',
+  AND: '安道尔',
+  AGO: '安哥拉',
+  ARG: '阿根廷',
+  ARM: '亚美尼亚',
+  AUS: '澳大利亚',
+  AUT: '奥地利',
+  AZE: '阿塞拜疆',
+  BHS: '巴哈马',
+  BHR: '巴林',
+  BGD: '孟加拉国',
+  BLR: '白俄罗斯',
+  BEL: '比利时',
+  BLZ: '伯利兹',
+  BEN: '贝宁',
+  BTN: '不丹',
+  BOL: '玻利维亚',
+  BIH: '波黑',
+  BWA: '博茨瓦纳',
+  CHN: '中国',
+  BRA: '巴西',
+  BRN: '文莱',
+  BGR: '保加利亚',
+  BFA: '布基纳法索',
+  BDI: '布隆迪',
+  KHM: '柬埔寨',
+  CMR: '喀麦隆',
+  DEU: '德国',
+  CAN: '加拿大',
+  CAF: '中非',
+  TCD: '乍得',
+  CHL: '智利',
+  TWN: '台湾',
+  HKG: '香港',
+  COL: '哥伦比亚',
+  COM: '科摩罗',
+  COD: '刚果（金）',
+  COG: '刚果（布）',
+  CRI: '哥斯达黎加',
+  HRV: '克罗地亚',
+  CUB: '古巴',
+  CYP: '塞浦路斯',
+  CZE: '捷克',
+  DNK: '丹麦',
+  DJI: '吉布提',
+  DOM: '多米尼加共和国',
+  ECU: '厄瓜多尔',
+  EGY: '埃及',
+  SLV: '萨尔瓦多',
+  GNQ: '赤道几内亚',
+  ERI: '厄立特里亚',
+  EST: '爱沙尼亚',
+  SWZ: '斯威士兰',
+  ETH: '埃塞俄比亚',
+  FRA: '法国',
+  FIN: '芬兰',
+  GAB: '加蓬',
+  GMB: '冈比亚',
+  GEO: '格鲁吉亚',
+  GHA: '加纳',
+  GRC: '希腊',
+  GRL: '格陵兰',
+  GTM: '危地马拉',
+  GIN: '几内亚',
+  GNB: '几内亚比绍',
+  GUY: '圭亚那',
+  HTI: '海地',
+  HND: '洪都拉斯',
+  HUN: '匈牙利',
+  ISL: '冰岛',
+  IND: '印度',
+  IDN: '印度尼西亚',
+  IRN: '伊朗',
+  IRQ: '伊拉克',
+  IRL: '爱尔兰',
+  ISR: '以色列',
+  ITA: '意大利',
+  CIV: '科特迪瓦',
+  JAM: '牙买加',
+  JPN: '日本',
+  JOR: '约旦',
+  KAZ: '哈萨克斯坦',
+  KEN: '肯尼亚',
+  KWT: '科威特',
+  KGZ: '吉尔吉斯斯坦',
+  LAO: '老挝',
+  LVA: '拉脱维亚',
+  LBN: '黎巴嫩',
+  LSO: '莱索托',
+  LBR: '利比里亚',
+  LBY: '利比亚',
+  LTU: '立陶宛',
+  LUX: '卢森堡',
+  MDG: '马达加斯加',
+  MWI: '马拉维',
+  MYS: '马来西亚',
+  MLI: '马里',
+  MRT: '毛里塔尼亚',
+  MEX: '墨西哥',
+  MDA: '摩尔多瓦',
+  MNG: '蒙古',
+  MNE: '黑山',
+  MAR: '摩洛哥',
+  MOZ: '莫桑比克',
+  MMR: '缅甸',
+  NAM: '纳米比亚',
+  NPL: '尼泊尔',
+  NLD: '荷兰',
+  NZL: '新西兰',
+  NIC: '尼加拉瓜',
+  NER: '尼日尔',
+  NGA: '尼日利亚',
+  PRK: '朝鲜',
+  MKD: '北马其顿',
+  NOR: '挪威',
+  OMN: '阿曼',
+  PAK: '巴基斯坦',
+  PAN: '巴拿马',
+  PNG: '巴布亚新几内亚',
+  PRY: '巴拉圭',
+  PER: '秘鲁',
+  PHL: '菲律宾',
+  POL: '波兰',
+  PRT: '葡萄牙',
+  PRI: '波多黎各',
+  QAT: '卡塔尔',
+  ROU: '罗马尼亚',
+  RUS: '俄罗斯',
+  RWA: '卢旺达',
+  SAU: '沙特阿拉伯',
+  SEN: '塞内加尔',
+  SRB: '塞尔维亚',
+  SLE: '塞拉利昂',
+  SGP: '新加坡',
+  SVK: '斯洛伐克',
+  SVN: '斯洛文尼亚',
+  SOM: '索马里',
+  ZAF: '南非',
+  KOR: '韩国',
+  SSD: '南苏丹',
+  ESP: '西班牙',
+  LKA: '斯里兰卡',
+  SDN: '苏丹',
+  SUR: '苏里南',
+  SWE: '瑞典',
+  CHE: '瑞士',
+  SYR: '叙利亚',
+  TJK: '塔吉克斯坦',
+  TZA: '坦桑尼亚',
+  THA: '泰国',
+  TGO: '多哥',
+  TTO: '特立尼达和多巴哥',
+  TUN: '突尼斯',
+  TUR: '土耳其',
+  TKM: '土库曼斯坦',
+  UGA: '乌干达',
+  UKR: '乌克兰',
+  ARE: '阿联酋',
+  GBR: '英国',
+  USA: '美国',
+  URY: '乌拉圭',
+  UZB: '乌兹别克斯坦',
+  VEN: '委内瑞拉',
+  VNM: '越南',
+  PSE: '巴勒斯坦',
+  YEM: '也门',
+  ZMB: '赞比亚',
+  ZWE: '津巴布韦',
+  GUF: '法属圭亚那',
+  VAT: '梵蒂冈',
+  FJI: '斐济',
+  KOS: '科索沃',
+  ESH: '西撒哈拉',
+  SGS: '南乔治亚和南桑威奇群岛',
+  BMU: '百慕大',
+  CYM: '开曼群岛',
+  FLK: '福克兰群岛',
+  GUM: '关岛',
+  MNP: '北马里亚纳群岛',
+  VIR: '美属维尔京群岛',
+  ASM: '美属萨摩亚',
+  JEY: '泽西岛',
+  GGY: '根西岛',
+  IMN: '马恩岛',
+  SHN: '圣赫勒拿',
+  PCN: '皮特凯恩群岛',
+  MSR: '蒙特塞拉特',
+  VGB: '英属维尔京群岛',
+  TCA: '特克斯和凯科斯群岛',
+  AIA: '安圭拉',
 };
 
 
@@ -173,7 +419,7 @@ function getFeatureBboxCenter(feat: GeoFeature): { lat: number; lng: number } | 
   }
 }
 
-/** Map bbox span → camera altitude (large country → higher, small → closer) */
+/** Map bbox span 鈫?camera altitude (large country 鈫?higher, small 鈫?closer) */
 function getFeatureAltitude(feat: GeoFeature): number {
   try {
     const geom = feat.geometry as any;
@@ -267,7 +513,6 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
     () => Math.max(1, ...admin1Hotspots.map((item) => item.event_count || 0)),
     [admin1Hotspots]
   );
-
   const globeMaterial = useMemo(
     () =>
       new THREE.MeshPhongMaterial({
@@ -281,20 +526,13 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
       }),
     []
   );
-
   useEffect(() => {
     fetchCountryHotspots();
   }, [fetchCountryHotspots]);
 
   useEffect(() => {
     let cancelled = false;
-    const tryLoad = (url: string): Promise<GeoFeature[]> =>
-      fetch(url)
-        .then((r) => { if (!r.ok) throw new Error('not ok'); return r.json(); })
-        .then((data: { features?: GeoFeature[] }) => data?.features ?? []);
-
-    tryLoad(LOCAL_COUNTRIES_GEOJSON)
-      .catch(() => tryLoad(CDN_COUNTRIES_GEOJSON))
+    loadGeoFeatures(LOCAL_COUNTRIES_GEOJSON, CDN_COUNTRIES_GEOJSON)
       .then((features) => { if (!cancelled) setCountries(features); })
       .catch(() => { /* offline or both unavailable */ });
     return () => { cancelled = true; };
@@ -370,7 +608,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
   /** Extract admin1_code from a Natural Earth admin1 feature */
   const admin1Code = useCallback((feat: GeoFeature): string => {
     const p = feat.properties || {};
-    // iso_3166_2 is like "GB-ENG" — use the part after the dash as key
+    // iso_3166_2 is like "GB-ENG" 鈥?use the part after the dash as key
     const iso2 = String(p['iso_3166_2'] || '');
     if (iso2.includes('-')) return iso2.split('-').slice(1).join('-');
     return String(p['name'] || p['NAME'] || '');
@@ -399,6 +637,20 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
     [admin1EventCountMap, admin1Code]
   );
 
+  const displayPolygons = useMemo(() => {
+    if (layer !== 'country') return countries;
+    if (admin1Features.length === 0) return countries;
+    if (selectedCountryCode !== 'CN') return admin1Features;
+
+    const hasTaiwanRegion = admin1Features.some((feature) => admin1Code(feature as GeoFeature) === 'TW');
+    if (hasTaiwanRegion) return admin1Features;
+
+    const taiwanCountryFeature = countries.find((feature) => countryCode(feature).toUpperCase() === 'TWN');
+    if (!taiwanCountryFeature) return admin1Features;
+
+    return [...admin1Features, buildChinaTaiwanRegionFeature(taiwanCountryFeature)];
+  }, [layer, countries, admin1Features, selectedCountryCode, admin1Code]);
+
   const polygonCapColor = useCallback(
     (d: object) => {
       const feat = d as GeoFeature;
@@ -418,10 +670,10 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
         if (isHover) return 'rgba(255, 200, 80, 0.22)';
         return 'rgba(8, 12, 28, 0.92)';
       }
-      const code = countryCode(feat).toUpperCase();
+      const code = countryDataIso3(feat);
       const heat = countryHeatMap.get(code) ?? 0;
       const count = countryEventCountMap.get(code) ?? 0;
-      const isHover = !!hoveredCountry && code === hoveredCountry.toUpperCase();
+      const isHover = hoveredFeatureRef.current === feat;
       if (heat > 0 || count > 0) {
         const score = resolveCompositeIntensity(heat, count, maxCountryHeat, maxCountryEventCount);
         const { r, g, b, a } = compositeToRgba(score);
@@ -459,10 +711,10 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
         if (heat > 0 || count > 0) return isHover ? 'rgba(255, 160, 40, 0.28)' : 'rgba(60, 40, 10, 0.35)';
         return isHover ? 'rgba(255, 200, 80, 0.12)' : 'rgba(0,0,0,0.85)';
       }
-      const code = countryCode(feat).toUpperCase();
+      const code = countryDataIso3(feat);
       const heat = countryHeatMap.get(code) ?? 0;
       const count = countryEventCountMap.get(code) ?? 0;
-      const isHover = !!hoveredCountry && code === hoveredCountry.toUpperCase();
+      const isHover = hoveredFeatureRef.current === feat;
       if (heat > 0 || count > 0) return isHover ? 'rgba(120, 170, 255, 0.2)' : 'rgba(20, 40, 80, 0.35)';
       return isHover ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.92)';
     },
@@ -482,10 +734,10 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
         if (heat > 0 || count > 0) return isHover ? 'rgba(255, 220, 120, 0.95)' : 'rgba(200, 150, 60, 0.6)';
         return isHover ? 'rgba(255, 220, 80, 0.92)' : 'rgba(120, 100, 60, 0.4)';
       }
-      const code = countryCode(feat).toUpperCase();
+      const code = countryDataIso3(feat);
       const heat = countryHeatMap.get(code) ?? 0;
       const count = countryEventCountMap.get(code) ?? 0;
-      const isHover = !!hoveredCountry && code === hoveredCountry.toUpperCase();
+      const isHover = hoveredFeatureRef.current === feat;
       if (heat > 0 || count > 0) return isHover ? 'rgba(200, 230, 255, 0.95)' : 'rgba(140, 180, 255, 0.65)';
       return isHover ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.38)';
     },
@@ -504,10 +756,10 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
         if (isSelected) return 0.04;
         return isHover ? 0.028 : (heat > 0 || count > 0) ? 0.008 : 0.005;
       }
-      const code = countryCode(feat).toUpperCase();
+      const code = countryDataIso3(feat);
       const heat = countryHeatMap.get(code) ?? 0;
       const count = countryEventCountMap.get(code) ?? 0;
-      const isHover = !!hoveredCountry && code === hoveredCountry.toUpperCase();
+      const isHover = hoveredFeatureRef.current === feat;
       return isHover ? 0.022 : (heat > 0 || count > 0) ? 0.0055 : 0.0035;
     },
     [hoveredCountry, hoveredAdmin1, selectedAdmin1Code, layer, admin1Code, getAdmin1Heat, getAdmin1EventCount, countryHeatMap, countryEventCountMap]
@@ -540,13 +792,14 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
         setHoveredCountry(null);
       } else {
         const feat = polygon as GeoFeature;
-        const code = countryCode(feat).toUpperCase();
-        setHoveredCountry(code);
+        const dataCode = countryDataIso3(feat);
+        const featureCode = countryCode(feat).toUpperCase();
+        setHoveredCountry(dataCode);
         setHoveredAdmin1(null);
         setHoveredAdmin1Entry(null);
-        const entry = countryHotspots.find((c) => (c.iso_a3 || c.country_code || '').toUpperCase() === code);
-        const enName = String(feat.properties?.['NAME'] || code);
-        const zhName = ZH_NAMES[code];
+        const entry = countryHotspots.find((c) => canonicalCountryIso3(c.iso_a3 || c.country_code || '') === dataCode);
+        const enName = countryDisplayName(feat);
+        const zhName = ZH_NAMES[featureCode] || ZH_NAMES[dataCode];
         const displayName = zhName ? `${enName} · ${zhName}` : enName;
         setHoveredCountryEntry(
           entry
@@ -612,11 +865,11 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
       const feat = polygon as GeoFeature;
       if (layer === 'country') {
         if (admin1Features.length === 0) {
-          if (isLoadingAdmin1) return; // still loading — ignore click
+          if (isLoadingAdmin1) return; // still loading 鈥?ignore click
           // GeoJSON failed / country has no admin1 file.
           // Reset to global so the code below re-enters the country cleanly.
           backToGlobal();
-          // fall through to the global-layer handler ↓
+          // fall through to the global-layer handler 鈫?
         } else {
           const a1code = admin1Code(feat);
           const regionName = String(feat.properties?.['name'] || feat.properties?.['NAME'] || a1code);
@@ -626,6 +879,11 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
           );
           const resolvedCode = nameEntry?.admin1_code || a1code;
           const matchingHotspots = hotspots.filter((h) => {
+            if (selectedCountryCode === 'CN' && (resolvedCode === 'TW' || a1code === 'TW')) {
+              return h.geo_key === 'TW'
+                || h.geo_key?.startsWith('A1:TW:')
+                || (h.iso_a3 != null && h.iso_a3.toUpperCase() === 'TWN');
+            }
             if (!h.geo_key) return false;
             if (h.geo_key.startsWith('A1:')) {
               const parts = h.geo_key.split(':');
@@ -645,13 +903,18 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
         }
       }
       // Global-layer click (or fallthrough after backToGlobal above)
-      const iso3 = countryCode(feat).toUpperCase();
-      const iso2 = ISO3_TO_ISO2[iso3] || iso3.slice(0, 2);
-      const enName = feat.properties?.NAME || iso3;
-      const displayName = ZH_NAMES[iso3] ? `${enName} · ${ZH_NAMES[iso3]}` : enName;
-      const center = getFeatureBboxCenter(feat);
+      const featureIso3 = countryCode(feat).toUpperCase();
+      const iso3 = countryDataIso3(feat);
+      const iso2 = featureIso3 === 'TWN' ? 'CN' : canonicalCountryIso2(ISO3_TO_ISO2[iso3] || iso3.slice(0, 2));
+      const targetFeature = featureIso3 === 'TWN'
+        ? (countries.find((country) => countryCode(country).toUpperCase() === 'CHN') ?? feat)
+        : feat;
+      const enName = countryDisplayName(feat);
+      const zhName = ZH_NAMES[featureIso3] || ZH_NAMES[iso3];
+      const displayName = zhName ? `${enName} · ${zhName}` : enName;
+      const center = getFeatureBboxCenter(targetFeature);
       if (center) {
-        const alt = getFeatureAltitude(feat);
+        const alt = getFeatureAltitude(targetFeature);
         flyTo(center.lat, center.lng, alt, 1200);
       }
       if (globeRef.current) globeRef.current.controls().autoRotate = false;
@@ -660,11 +923,18 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
       setHoveredAdmin1Entry(null);
       selectCountry(iso2, displayName, iso3);
       const countryHotspots = hotspots.filter(
-        (h) => h.geo_key === iso2 || (h.iso_a3 && h.iso_a3.toUpperCase() === iso3)
+        (h) => {
+          if (iso2 === 'CN') {
+            return h.geo_key === 'CN'
+              || h.geo_key === 'TW'
+              || (h.iso_a3 != null && ['CHN', 'TWN'].includes(h.iso_a3.toUpperCase()));
+          }
+          return h.geo_key === iso2 || (h.iso_a3 && h.iso_a3.toUpperCase() === iso3);
+        }
       );
       onAdmin1RegionClick?.(countryHotspots, displayName, '', iso2);
     },
-    [layer, selectCountry, admin1Code, admin1Features, isLoadingAdmin1, backToGlobal, hotspots, selectedCountryCode, selectedCountryName, admin1Hotspots, onAdmin1RegionClick, flyTo]
+    [layer, selectCountry, admin1Code, admin1Features, isLoadingAdmin1, backToGlobal, hotspots, selectedCountryCode, selectedCountryName, admin1Hotspots, onAdmin1RegionClick, flyTo, countries]
   );
 
   /** Bright white-blue dot color that stands out against any country heat colour */
@@ -707,7 +977,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
           showAtmosphere
           atmosphereColor="#2a2a2e"
           atmosphereAltitude={0.12}
-          polygonsData={layer === 'country' && admin1Features.length > 0 ? admin1Features : countries}
+          polygonsData={displayPolygons}
           polygonGeoJsonGeometry={(d: object) => (d as GeoFeature).geometry as any}
           polygonCapColor={polygonCapColor}
           polygonSideColor={polygonSideColor}
@@ -741,16 +1011,16 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
           onMouseUp={stopOverlayInteraction}
           onClick={stopOverlayInteraction}
         >
-          <button className="geo-breadcrumb-btn" onClick={handleBackToGlobal} title="返回全球视图">
-            🌐 全球
+          <button className="geo-breadcrumb-btn" onClick={handleBackToGlobal} title="Back to global view">
+            Globe
           </button>
           <span className="geo-breadcrumb-sep">›</span>
           {onCountryBreadcrumbClick ? (
             <button className="geo-breadcrumb-btn geo-breadcrumb-btn--region" onClick={onCountryBreadcrumbClick}>
-              📍 {selectedCountryName}
+              {selectedCountryName}
             </button>
           ) : (
-            <span className="geo-layer-label">📍 {selectedCountryName}</span>
+            <span className="geo-layer-label">{selectedCountryName}</span>
           )}
           {regionBreadcrumb && regionBreadcrumb.length > 0 && regionBreadcrumb.map((seg, i) => {
             const isLast = i === regionBreadcrumb.length - 1;
@@ -778,7 +1048,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
           <div className="admin1-tooltip-name">{hoveredCountryEntry.name}</div>
           {hoveredCountryEntry.count > 0 && (
             <div className="admin1-tooltip-heat">
-              {hoveredCountryEntry.count} 条新闻 · 热度 {hoveredCountryEntry.heat}
+              {hoveredCountryEntry.count} news · heat {hoveredCountryEntry.heat}
             </div>
           )}
         </div>
@@ -792,17 +1062,18 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
           <div className="admin1-tooltip-name">{hoveredAdmin1Entry.name}</div>
           {hoveredAdmin1Entry.count > 0 && (
             <div className="admin1-tooltip-heat">
-              {hoveredAdmin1Entry.count} 条新闻 · 热度 {hoveredAdmin1Entry.heat}
+              {hoveredAdmin1Entry.count} news · heat {hoveredAdmin1Entry.heat}
             </div>
           )}
         </div>
       )}
 
       {layer === 'country' && isLoadingAdmin1 && (
-        <div className="geo-layer-loading">加载省/州数据中...</div>
+        <div className="geo-layer-loading">Loading regional boundaries...</div>
       )}
     </div>
   );
 };
 
 export default GlobeScene;
+

@@ -311,20 +311,37 @@ async def get_region_news(
     db: Session = Depends(get_db),
 ):
     """Get news for a specific region."""
+    if geo_key == "CN":
+        event_ids = (
+            db.query(EventGeoMapping.event_id)
+            .join(GeoEntity, GeoEntity.id == EventGeoMapping.geo_id)
+            .filter(GeoEntity.country_code.in_(["CN", "TW"]))
+            .distinct()
+            .subquery()
+        )
     # A1:CC:code keys cannot be matched via EventGeoMapping.geo_key (stored as US.NM / US:geonames_id).
     # Join through GeoEntity instead to find events by country_code + admin1_code.
-    if geo_key.startswith('A1:'):
+    elif geo_key.startswith('A1:'):
         parts = geo_key.split(':', 2)
         if len(parts) == 3:
             cc, a1 = parts[1].upper(), parts[2]
-            event_ids = (
-                db.query(EventGeoMapping.event_id)
-                .join(GeoEntity, GeoEntity.id == EventGeoMapping.geo_id)
-                .filter(GeoEntity.country_code == cc)
-                .filter(GeoEntity.admin1_code == a1)
-                .distinct()
-                .subquery()
-            )
+            if cc == "CN" and a1 == "TW":
+                event_ids = (
+                    db.query(EventGeoMapping.event_id)
+                    .join(GeoEntity, GeoEntity.id == EventGeoMapping.geo_id)
+                    .filter(GeoEntity.country_code == "TW")
+                    .distinct()
+                    .subquery()
+                )
+            else:
+                event_ids = (
+                    db.query(EventGeoMapping.event_id)
+                    .join(GeoEntity, GeoEntity.id == EventGeoMapping.geo_id)
+                    .filter(GeoEntity.country_code == cc)
+                    .filter(GeoEntity.admin1_code == a1)
+                    .distinct()
+                    .subquery()
+                )
         else:
             event_ids = db.query(EventGeoMapping.event_id).filter(
                 EventGeoMapping.geo_key == geo_key

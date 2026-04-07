@@ -92,8 +92,8 @@ export default function LiveVideos({
     if (viewMode === 'single') {
       return selectedSource ? [selectedSource.source_code] : [];
     }
-    return sources.slice(0, variant === 'sidebar' ? 3 : 2).map((source) => source.source_code);
-  }, [selectedSource, sources, variant, viewMode]);
+    return sources.map((source) => source.source_code);
+  }, [selectedSource, sources, viewMode]);
 
   return (
     <section className={`video-page ${variant === 'sidebar' ? 'video-page--sidebar' : ''}`}>

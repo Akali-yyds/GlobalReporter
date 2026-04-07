@@ -23,8 +23,8 @@ INDEX_PATH = STATIC_DIR / "geodata_index.json"
 
 # Natural Earth sources (via GitHub CDN — same as react-globe.gl uses)
 COUNTRIES_URL = (
-    "https://raw.githubusercontent.com/vasturiano/react-globe.gl"
-    "/master/example/datasets/ne_110m_admin_0_countries.geojson"
+    "https://raw.githubusercontent.com/nvkelso/natural-earth-vector"
+    "/master/geojson/ne_50m_admin_0_map_units.geojson"
 )
 
 # Natural Earth 50m admin1 (province/state boundaries, ~2MB — large countries only)
@@ -50,7 +50,7 @@ def download(url: str, dest: Path) -> None:
 
 
 def prepare_countries() -> bool:
-    dest = COUNTRIES_DIR / "ne_110m_admin_0_countries.geojson"
+    dest = COUNTRIES_DIR / "ne_50m_admin_0_map_units.geojson"
     if dest.exists():
         print(f"  countries GeoJSON already present ({dest.stat().st_size // 1024} KB), skipping.")
         return True
@@ -146,9 +146,9 @@ def update_index(countries_ok: bool, admin1_ready: list[str]) -> None:
     index["updated_at"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     index["layers"]["countries"] = {
-        "file": "countries/ne_110m_admin_0_countries.geojson",
-        "url": "/static/geodata/countries/ne_110m_admin_0_countries.geojson",
-        "description": "Natural Earth 110m country polygons",
+        "file": "countries/ne_50m_admin_0_map_units.geojson",
+        "url": "/static/geodata/countries/ne_50m_admin_0_map_units.geojson",
+        "description": "Natural Earth 50m map units for country display",
         "id_property": "ISO_A3",
         "name_property": "NAME",
         "ready": countries_ok,

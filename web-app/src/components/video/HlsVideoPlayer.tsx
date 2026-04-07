@@ -9,9 +9,22 @@ interface HlsVideoPlayerProps {
 
 export default function HlsVideoPlayer({ source, active }: HlsVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const [pageVisible, setPageVisible] = useState(document.visibilityState === 'visible');
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsVisible(entry.isIntersecting),
+      { rootMargin: '200px 0px' }
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const handleVisibility = () => setPageVisible(document.visibilityState === 'visible');
@@ -21,7 +34,7 @@ export default function HlsVideoPlayer({ source, active }: HlsVideoPlayerProps) 
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !source.playback_url || !active || !pageVisible) {
+    if (!video || !source.playback_url || !active || !pageVisible || !isVisible) {
       return;
     }
 
@@ -33,10 +46,13 @@ export default function HlsVideoPlayer({ source, active }: HlsVideoPlayerProps) 
       video.muted = true;
       video.playsInline = true;
       video.play().catch(() => {});
+
       const onLoadedData = () => setReady(true);
       const onError = () => setError('Unable to play HLS source');
+
       video.addEventListener('loadeddata', onLoadedData);
       video.addEventListener('error', onError);
+
       return () => {
         video.pause();
         video.removeAttribute('src');
@@ -56,6 +72,7 @@ export default function HlsVideoPlayer({ source, active }: HlsVideoPlayerProps) 
       enableWorker: true,
       lowLatencyMode: true,
     });
+
     hls.loadSource(source.playback_url);
     hls.attachMedia(video);
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -74,7 +91,14 @@ export default function HlsVideoPlayer({ source, active }: HlsVideoPlayerProps) 
       video.pause();
       hls.destroy();
     };
-  }, [source.playback_url, active, pageVisible]);
+  }, [source.playback_url, active, isVisible, pageVisible]);
+
+  useEffect(() => {
+    if (!active || !pageVisible || !isVisible) {
+      setReady(false);
+      setError(null);
+    }
+  }, [active, isVisible, pageVisible]);
 
   if (source.status === 'offline') {
     return <div className="video-player-state video-player-state--offline">Stream offline</div>;
@@ -85,8 +109,12 @@ export default function HlsVideoPlayer({ source, active }: HlsVideoPlayerProps) 
   }
 
   return (
-    <div className="video-player-shell">
-      {!ready && !error && <div className="video-player-state">Loading stream…</div>}
+    <div className="video-player-shell" ref={containerRef}>
+      {!ready && !error && (
+        <div className="video-player-state">
+          {isVisible ? 'Loading stream...' : 'Ready to play'}
+        </div>
+      )}
       {error && <div className="video-player-state video-player-state--error">{error}</div>}
       <video
         ref={videoRef}

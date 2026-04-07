@@ -38,12 +38,31 @@ class CrawledArticleIngest(BaseModel):
     source_name: str
     source_code: str
     source_url: Optional[str] = None
+    source_class: Optional[str] = None
+    source_tier: Optional[str] = None
+    source_tier_level: Optional[int] = None
     language: str = "zh"
     country: str = "CN"
     category: Optional[str] = None
+    freshness_sla_hours: Optional[int] = None
     heat_score: int = 0
+    severity: Optional[int] = None
+    confidence: Optional[float] = None
+    geo: Optional[str] = None
+    geom_type: Optional[str] = None
+    raw_geometry: Optional[Any] = None
+    display_geo: Optional[Any] = None
+    bbox: Optional[Any] = None
+    source_metadata: Optional[Any] = None
+    license_mode: Optional[str] = None
+    canonical_url: Optional[str] = None
+    external_id: Optional[str] = None
     content_hash: str = Field(..., min_length=8, alias="hash")
     published_at: Optional[Any] = None
+    event_time: Optional[Any] = None
+    event_status: Optional[str] = None
+    closed_at: Optional[Any] = None
+    source_updated_at: Optional[Any] = None
     crawled_at: Optional[Any] = None
     tags: Optional[List[str]] = None
     region_tags: Optional[List[str]] = None

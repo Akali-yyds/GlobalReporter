@@ -31,11 +31,30 @@ class NewsEventBase(BaseModel):
     summary: Optional[str] = None
     main_country: str
     event_level: str = "country"
+    source_code: Optional[str] = None
+    source_class: str = "news"
     heat_score: int = 0
+    severity: int = 0
+    confidence: int = 100
     article_count: int = 0
     category: Optional[str] = None
+    geo: Optional[str] = None
+    geom_type: Optional[str] = None
+    raw_geometry: Optional[dict] = None
+    display_geo: Optional[dict] = None
+    bbox: Optional[list[float]] = None
+    source_metadata: Optional[dict] = None
     tags: List[str] = Field(default_factory=list)
     source_tier: str = "authoritative"
+    source_tier_level: int = 2
+    freshness_sla_hours: int = 24
+    event_time: Optional[datetime] = None
+    event_status: str = "closed"
+    closed_at: Optional[datetime] = None
+    source_updated_at: Optional[datetime] = None
+    license_mode: str = "public_web"
+    canonical_url: Optional[str] = None
+    external_id: Optional[str] = None
 
 
 class NewsEventListItem(NewsEventBase):

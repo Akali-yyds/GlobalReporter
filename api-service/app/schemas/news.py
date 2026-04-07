@@ -14,10 +14,19 @@ class NewsArticleBase(BaseModel):
     article_url: str
     source_name: str
     source_code: str
+    source_class: str = "news"
     publish_time: Optional[datetime] = None
+    event_time: Optional[datetime] = None
+    freshness_sla_hours: int = 24
     heat_score: int = 0
+    severity: int = 0
+    confidence: int = 100
     category: Optional[str] = None
     language: str = "zh"
+    geo: Optional[str] = None
+    license_mode: str = "public_web"
+    canonical_url: Optional[str] = None
+    external_id: Optional[str] = None
 
 
 class NewsArticleCreate(NewsArticleBase):

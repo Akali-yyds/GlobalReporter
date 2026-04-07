@@ -1,15 +1,16 @@
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import type { NewsEvent, SourceTier } from '../../types/news';
+import { isEventInTimeRange, parseApiDate, type NewsTimeRange } from '../../utils/timeUtils';
 import './NewsSidebar.css';
-
-export type TimeRange = 'today' | 'yesterday' | '3days';
 
 interface NewsSidebarProps {
   events: NewsEvent[];
   total?: number;
   selectedEventId?: string;
+  timeRange: NewsTimeRange;
   selectedTags: string[];
   selectedSourceTier: SourceTier | null;
+  onTimeRangeChange: (timeRange: NewsTimeRange) => void;
   onTagToggle: (tag: string) => void | Promise<void>;
   onTagClear: () => void | Promise<void>;
   onSourceTierChange: (tier: SourceTier | null) => void | Promise<void>;
@@ -57,7 +58,7 @@ function saveFavorites(ids: Set<string>) {
 }
 
 function formatRelativeTime(isoString: string, now: number): string {
-  const date = new Date(isoString);
+  const date = parseApiDate(isoString);
   const diff = now - date.getTime();
   const hours = Math.floor(diff / (1000 * 60 * 60));
   if (hours < 1) return 'Just now';
@@ -72,15 +73,16 @@ const NewsSidebar = memo(
     events,
     total: _total,
     selectedEventId,
+    timeRange,
     selectedTags,
     selectedSourceTier,
+    onTimeRangeChange,
     onTagToggle,
     onTagClear,
     onSourceTierChange,
     onEventClick,
   }: NewsSidebarProps) => {
     const [activeTab, setActiveTab] = useState<'hot' | 'favorites' | 'video'>('hot');
-    const [timeRange, setTimeRange] = useState<TimeRange>('today');
     const [favorites, setFavorites] = useState<Set<string>>(() => loadFavorites());
     const [isTopicExpanded, setIsTopicExpanded] = useState(true);
     const [isSourceExpanded, setIsSourceExpanded] = useState(false);
@@ -101,46 +103,19 @@ const NewsSidebar = memo(
     }, []);
 
     const now = Date.now();
+    const hotEventsInRange = events.filter((event) => isEventInTimeRange(event.last_seen_at, timeRange));
+    const sourceScopedEvents = selectedSourceTier
+      ? hotEventsInRange.filter((event) => event.source_tier === selectedSourceTier)
+      : hotEventsInRange;
+    const filteredEvents = activeTab === 'favorites'
+      ? events.filter((event) => favorites.has(event.id))
+      : sourceScopedEvents.filter((event) => {
+        if (selectedTags.length === 0) return true;
+        const eventTags = event.tags?.map((tag) => tag.trim().toLowerCase()) ?? [];
+        return selectedTags.every((tag) => eventTags.includes(tag));
+      });
 
-    const isToday = useCallback((isoString: string) => {
-      const d = new Date(isoString);
-      const today = new Date();
-      return d.getFullYear() === today.getFullYear()
-        && d.getMonth() === today.getMonth()
-        && d.getDate() === today.getDate();
-    }, []);
-
-    const isYesterday = useCallback((isoString: string) => {
-      const d = new Date(isoString);
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      return d.getFullYear() === yesterday.getFullYear()
-        && d.getMonth() === yesterday.getMonth()
-        && d.getDate() === yesterday.getDate();
-    }, []);
-
-    const isWithin3Days = useCallback((isoString: string) => {
-      const oneDay = 24 * 60 * 60 * 1000;
-      const diff = now - new Date(isoString).getTime();
-      return diff >= oneDay && diff <= 3 * oneDay;
-    }, [now]);
-
-    const filteredEvents = events.filter((event) => {
-      if (activeTab === 'favorites') return favorites.has(event.id);
-      if (activeTab === 'hot') {
-        switch (timeRange) {
-          case 'today':
-            return isToday(event.first_seen_at);
-          case 'yesterday':
-            return isYesterday(event.first_seen_at);
-          case '3days':
-            return isWithin3Days(event.first_seen_at);
-        }
-      }
-      return true;
-    });
-
-    const tagCounts = events.reduce<Record<string, number>>((acc, event) => {
+    const tagCounts = sourceScopedEvents.reduce<Record<string, number>>((acc, event) => {
       for (const tag of event.tags ?? []) {
         acc[tag] = (acc[tag] ?? 0) + 1;
       }
@@ -152,7 +127,7 @@ const NewsSidebar = memo(
     );
 
     const favCount = favorites.size;
-    const tierCounts = events.reduce<Record<string, number>>((acc, event) => {
+    const tierCounts = hotEventsInRange.reduce<Record<string, number>>((acc, event) => {
       const tier = event.source_tier;
       if (!tier) return acc;
       acc[tier] = (acc[tier] ?? 0) + 1;
@@ -192,12 +167,12 @@ const NewsSidebar = memo(
         {activeTab === 'hot' && (
           <>
             <div className="time-filters">
-              {(['today', 'yesterday', '3days'] as TimeRange[]).map((range) => (
+              {(['today', 'yesterday', '3days'] as NewsTimeRange[]).map((range) => (
                 <button
                   key={range}
                   type="button"
                   className={`time-btn ${timeRange === range ? 'active' : ''}`}
-                  onClick={() => setTimeRange(range)}
+                  onClick={() => onTimeRangeChange(range)}
                 >
                   {range === 'today' ? 'Today' : range === 'yesterday' ? 'Yesterday' : 'Past 3d'}
                 </button>
@@ -313,7 +288,7 @@ const NewsSidebar = memo(
               >
                 <div className="item-header">
                   <span className="item-country">{event.main_country || 'Unknown'}</span>
-                  <span className="item-time">{formatRelativeTime(event.first_seen_at, now)}</span>
+                  <span className="item-time">{formatRelativeTime(event.last_seen_at, now)}</span>
                 </div>
                 <h3 className="item-title">{event.title}</h3>
                 {!!event.tags?.length && (

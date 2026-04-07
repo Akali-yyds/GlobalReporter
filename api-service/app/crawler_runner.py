@@ -25,21 +25,35 @@ logger = logging.getLogger(__name__)
 # Keep in sync with crawler-service/scheduler.py DEFAULT_SPIDERS.
 CHINA_SPIDERS: List[str] = ["sina", "global_times", "tencent", "bilibili_hot"]
 WORLD_SPIDERS: List[str] = [
-    "cnn", "guardian",                      # US/UK (ap feeds unreachable on some nets)
-    "bbc",                                   # UK
-    "aljazeera", "dw", "france24",          # International (reuters bot-blocked)
-    "cna", "scmp", "nhk", "ndtv",           # Asia-Pacific
+    "cnn", "ap", "guardian",
+    "bbc", "reuters", "abc_news", "cbs_news", "sky_news", "pbs_newshour", "euronews",
+    "fox_news", "times_of_india",
+    "aljazeera", "dw",
+    "cna", "scmp", "straits_times", "nhk", "ndtv",           # Asia-Pacific
+    "earthquake_usgs", "eonet_events", "disaster_gdacs",
     "nasa_official", "openai_official", "google_blog",
+    "nvidia_official", "youtube_blog", "dod_official",
     "github_changelog", "github_openai_releases", "youtube_official",
+    "gdelt_doc_global",
 ]
 
 # Background rotation: alternates CN and World sources for broad coverage
 _BACKGROUND_ROTATION: List[str] = [
     "bbc", "sina",
     "guardian", "tencent",
+    "reuters", "ap",
+    "abc_news", "sky_news",
     "dw", "global_times",
+    "cbs_news", "ndtv",
+    "pbs_newshour", "euronews",
+    "fox_news", "times_of_india",
+    "earthquake_usgs", "eonet_events",
+    "disaster_gdacs",
     "openai_official", "github_changelog",
+    "gdelt_doc_global", "nvidia_official",
+    "cna", "scmp",
     "youtube_official", "bilibili_hot",
+    "youtube_blog", "dod_official",
     "bbc", "sina",
 ]
 _bg_spider_cycle = itertools.cycle(_BACKGROUND_ROTATION)
@@ -70,7 +84,7 @@ def _placeholder_source_id(spider_name: str) -> str:
     return str(uuid5(NAMESPACE_DNS, f"globalreporter:{spider_name}"))
 
 
-def _create_crawl_job(spider_name: str) -> str | None:
+def _create_crawl_job(spider_name: str, *, job_spider_name: str | None = None) -> str | None:
     try:
         from app.database import SessionLocal
         from app.models import CrawlJob, NewsSource
@@ -82,7 +96,7 @@ def _create_crawl_job(spider_name: str) -> str | None:
             job = CrawlJob(
                 id=str(uuid4()),
                 source_id=source.id if source else _placeholder_source_id(spider_name),
-                spider_name=spider_name,
+                spider_name=job_spider_name or spider_name,
                 status="running",
                 started_at=now,
                 finished_at=None,
@@ -132,7 +146,58 @@ def _update_crawl_job(
         logger.exception("Failed to update crawl job %s", job_id)
 
 
-def _run_scrapy_sync(spider_name: str, max_items: int = 50) -> int:
+def _has_feed_rollout(spider_name: str, rollout_state: str) -> bool:
+    try:
+        from app.database import SessionLocal
+        from app.models import SourceFeedProfile
+
+        db = SessionLocal()
+        try:
+            return (
+                db.query(SourceFeedProfile)
+                .filter(
+                    SourceFeedProfile.source_code == spider_name,
+                    SourceFeedProfile.rollout_state == rollout_state,
+                    SourceFeedProfile.enabled == True,
+                )
+                .first()
+                is not None
+            )
+        finally:
+            db.close()
+    except Exception:
+        logger.debug("Failed to query feed rollout for spider=%s", spider_name, exc_info=True)
+        return False
+
+
+def _canary_due(spider_name: str, interval_minutes: int = 360) -> bool:
+    try:
+        from app.database import SessionLocal
+        from app.models import CrawlJob
+
+        db = SessionLocal()
+        try:
+            last_job = (
+                db.query(CrawlJob)
+                .filter(
+                    CrawlJob.spider_name == f"{spider_name}:canary",
+                    CrawlJob.status == "completed",
+                )
+                .order_by(CrawlJob.started_at.desc())
+                .first()
+            )
+            if last_job is None or last_job.started_at is None:
+                return True
+            elapsed = datetime.now(timezone.utc).replace(tzinfo=None) - last_job.started_at
+            return elapsed.total_seconds() >= interval_minutes * 60
+        finally:
+            db.close()
+    except Exception:
+        logger.debug("Failed to evaluate canary due state for spider=%s", spider_name, exc_info=True)
+        return False
+
+
+def _run_scrapy_sync(spider_name: str, max_items: int = 50, feed_scope: str = "default") -> int:
     """Run `scrapy crawl <spider>` synchronously. Returns process return code."""
     from app.config import settings
 
@@ -162,12 +227,15 @@ def _run_scrapy_sync(spider_name: str, max_items: int = 50) -> int:
         spider_name,
         "-a",
         f"max_items={mi}",
+        "-a",
+        f"feed_scope={feed_scope}",
         "-s",
         f"CLOSESPIDER_ITEMCOUNT={mi}",
     ]
 
     t_start = time.monotonic()
-    job_id = _create_crawl_job(spider_name)
+    job_label = spider_name if feed_scope == "default" else f"{spider_name}:{feed_scope}"
+    job_id = _create_crawl_job(spider_name, job_spider_name=job_label)
     logger.info("Running crawler: %s (cwd=%s)", " ".join(cmd), cwd)
     try:
         proc = subprocess.run(
@@ -237,13 +305,13 @@ def _run_scrapy_sync(spider_name: str, max_items: int = 50) -> int:
     return proc.returncode
 
 
-def _run_scrapy_with_retry(spider_name: str, max_items: int = 50, max_retries: int = 1) -> int:
+def _run_scrapy_with_retry(spider_name: str, max_items: int = 50, max_retries: int = 1, feed_scope: str = "default") -> int:
     """Run a spider with one automatic retry on transient failure (rc != 0 and rc != 127)."""
-    rc = _run_scrapy_sync(spider_name, max_items)
+    rc = _run_scrapy_sync(spider_name, max_items, feed_scope=feed_scope)
     if rc not in (0, 127, 124) and max_retries > 0:
         logger.warning("Retrying spider=%s after rc=%s", spider_name, rc)
         time.sleep(5)
-        rc = _run_scrapy_sync(spider_name, max_items)
+        rc = _run_scrapy_sync(spider_name, max_items, feed_scope=feed_scope)
         if rc != 0:
             logger.error("Spider %s still failed after retry: rc=%s", spider_name, rc)
     return rc
@@ -334,6 +402,9 @@ def _background_loop():
                 next_spider = next(_bg_spider_cycle)
                 logger.info("Background crawl tick: spider=%s", next_spider)
                 _run_scrapy_with_retry(next_spider, max_items=50)
+                if _has_feed_rollout(next_spider, "canary") and _canary_due(next_spider):
+                    logger.info("Background canary tick: spider=%s", next_spider)
+                    _run_scrapy_with_retry(next_spider, max_items=20, feed_scope="canary")
             finally:
                 _runner_lock.release()
         else:

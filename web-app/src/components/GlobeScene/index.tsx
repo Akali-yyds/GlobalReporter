@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
+import { useRef, useEffect, useCallback, useState, useMemo, type MouseEvent as ReactMouseEvent } from 'react';
 import Globe from 'react-globe.gl';
 import * as THREE from 'three';
 import { useGlobeStore } from '../../stores/globeStore';
@@ -18,6 +18,7 @@ interface GlobeSceneProps {
   hotspots: Hotspot[];
   onHotspotClick: (eventId: string) => void;
   onAdmin1RegionClick?: (regionHotspots: Hotspot[], regionName: string, countryName: string, geoKey?: string) => void;
+  onBackToGlobal?: () => void;
   /** Breadcrumb path entries below the country level, e.g. ['广东省', '广州市'] */
   regionBreadcrumb?: string[];
   /** If provided, a back arrow appears on the last breadcrumb segment to navigate up one level */
@@ -137,7 +138,14 @@ function getFeatureAltitude(feat: GeoFeature): number {
   }
 }
 
-const GlobeScene: React.FC<GlobeSceneProps> = ({ hotspots: rawHotspots,  onAdmin1RegionClick, regionBreadcrumb, onRegionBreadcrumbBack, onCountryBreadcrumbClick }) => {
+const GlobeScene: React.FC<GlobeSceneProps> = ({
+  hotspots: rawHotspots,
+  onAdmin1RegionClick,
+  onBackToGlobal,
+  regionBreadcrumb,
+  onRegionBreadcrumbBack,
+  onCountryBreadcrumbClick,
+}) => {
   const hotspots = rawHotspots.filter((h: Hotspot) => h.center != null && h.center.length >= 2);
   const globeRef = useRef<any>(null);
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -466,11 +474,19 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ hotspots: rawHotspots,  onAdmin
     clickTargetRef.current = null;
   }, []);
 
+  const stopOverlayInteraction = useCallback((event: ReactMouseEvent<HTMLElement>) => {
+    event.stopPropagation();
+    clickTargetRef.current = null;
+    clickOriginRef.current = null;
+    isDraggingRef.current = false;
+  }, []);
+
   const handleBackToGlobal = useCallback(() => {
     clearGeoInteractionState();
     backToGlobal();
+    onBackToGlobal?.();
     flyTo(22, 105, 2.45, 1000);
-  }, [backToGlobal, clearGeoInteractionState, flyTo]);
+  }, [backToGlobal, clearGeoInteractionState, flyTo, onBackToGlobal]);
 
   const handlePolygonClick = useCallback(
     (polygon: object) => {
@@ -551,8 +567,11 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ hotspots: rawHotspots,  onAdmin
         clickTargetRef.current = hoveredFeatureRef.current;
       }}
       onMouseUp={() => {
+        if (!clickOriginRef.current) return;
         if (isDraggingRef.current) return;
         const feat = clickTargetRef.current;
+        clickOriginRef.current = null;
+        clickTargetRef.current = null;
         if (feat) handlePolygonClick(feat);
       }}
     >
@@ -598,7 +617,12 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({ hotspots: rawHotspots,  onAdmin
       </div>
 
       {layer === 'country' && selectedCountryName && (
-        <div className="geo-layer-indicator">
+        <div
+          className="geo-layer-indicator"
+          onMouseDown={stopOverlayInteraction}
+          onMouseUp={stopOverlayInteraction}
+          onClick={stopOverlayInteraction}
+        >
           <button className="geo-breadcrumb-btn" onClick={handleBackToGlobal} title="返回全球视图">
             🌐 全球
           </button>

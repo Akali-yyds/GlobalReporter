@@ -1177,6 +1177,424 @@ class TestNewsEndpoints:
             app.dependency_overrides.clear()
             Base.metadata.drop_all(bind=test_engine)
 
+    def test_source_policy_overrides_ingest_defaults(self):
+        from datetime import datetime
+
+        from app.models import Base, NewsArticle, NewsEvent, NewsSource, SourcePolicy
+        from app.main import app
+        from app.database import get_db
+        from app.api import news as news_api
+
+        test_engine = create_engine(
+            "sqlite:///:memory:",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+        Base.metadata.create_all(bind=test_engine)
+        TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+        def override_get_db():
+            db = TestSessionLocal()
+            try:
+                yield db
+            finally:
+                db.close()
+
+        app.dependency_overrides[get_db] = override_get_db
+        news_api._hot_news_cache.invalidate()
+
+        db = TestSessionLocal()
+        try:
+            db.add(
+                SourcePolicy(
+                    source_code="openai_official",
+                    source_class="lead",
+                    enabled=True,
+                    fetch_mode="poll_feed",
+                    schedule_minutes=360,
+                    freshness_sla_hours=168,
+                    dedup_key_mode="canonical_url",
+                    event_time_field_priority=["published_at"],
+                    severity_mapping_rule=None,
+                    geo_precision_rule="text_geo",
+                    default_params_json={},
+                    license_mode="official_public",
+                    notes="test override",
+                )
+            )
+            db.commit()
+        finally:
+            db.close()
+
+        payload = {
+            "title": "OpenAI acquires TBPN",
+            "summary": "Acquisition expands the media and product ecosystem.",
+            "content": "OpenAI announced the acquisition in an official newsroom update.",
+            "url": "https://openai.com/news/openai-acquires-tbpn",
+            "source_name": "OpenAI News",
+            "source_code": "openai_official",
+            "source_url": "https://openai.com/news/",
+            "language": "en",
+            "country": "US",
+            "category": "official",
+            "heat_score": 64,
+            "hash": "policy-override-hash-openai",
+            "published_at": datetime.utcnow().isoformat(),
+        }
+
+        try:
+            with TestClient(app) as client:
+                response = client.post("/api/news/ingest", json=payload)
+                assert response.status_code == 200
+
+                db = TestSessionLocal()
+                try:
+                    source = db.query(NewsSource).filter(NewsSource.code == "openai_official").first()
+                    article = db.query(NewsArticle).filter(NewsArticle.hash == "policy-override-hash-openai").first()
+                    event = db.query(NewsEvent).filter(NewsEvent.title == payload["title"]).first()
+
+                    assert source is not None
+                    assert source.source_class == "lead"
+                    assert source.freshness_sla_hours == 168
+                    assert source.license_mode == "official_public"
+
+                    assert article is not None
+                    assert article.source_class == "lead"
+                    assert article.freshness_sla_hours == 168
+                    assert article.license_mode == "official_public"
+
+                    assert event is not None
+                    assert event.source_class == "lead"
+                    assert event.freshness_sla_hours == 168
+                    assert event.license_mode == "official_public"
+                finally:
+                    db.close()
+
+                policy_response = client.get("/api/sources/policies")
+                assert policy_response.status_code == 200
+                policies = policy_response.json()
+                assert len(policies) == 1
+                assert policies[0]["source_code"] == "openai_official"
+                assert policies[0]["freshness_sla_hours"] == 168
+        finally:
+            news_api._hot_news_cache.invalidate()
+            app.dependency_overrides.clear()
+            Base.metadata.drop_all(bind=test_engine)
+
+    def test_event_source_ingest_is_idempotent_and_preserves_lifecycle(self):
+        from datetime import datetime, timedelta
+
+        from app.models import Base, NewsArticle, NewsEvent, SourcePolicy
+        from app.main import app
+        from app.database import get_db
+        from app.api import news as news_api
+
+        test_engine = create_engine(
+            "sqlite:///:memory:",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+        Base.metadata.create_all(bind=test_engine)
+        TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+        def override_get_db():
+            db = TestSessionLocal()
+            try:
+                yield db
+            finally:
+                db.close()
+
+        app.dependency_overrides[get_db] = override_get_db
+        news_api._hot_news_cache.invalidate()
+
+        db = TestSessionLocal()
+        try:
+            db.add(
+                SourcePolicy(
+                    source_code="eonet_events",
+                    source_class="event",
+                    enabled=True,
+                    fetch_mode="poll_api",
+                    schedule_minutes=60,
+                    freshness_sla_hours=168,
+                    dedup_key_mode="external_id",
+                    event_time_field_priority=["event_time", "source_updated_at"],
+                    severity_mapping_rule="eonet_category",
+                    geo_precision_rule="geometry",
+                    default_params_json={"realtime": {"status": "open", "category": ["wildfires"]}},
+                    license_mode="event_feed",
+                    notes="test event policy",
+                )
+            )
+            db.commit()
+        finally:
+            db.close()
+
+        first_seen = datetime.utcnow() - timedelta(days=3)
+        refreshed = datetime.utcnow()
+        payload = {
+            "title": "Wildfire near Alberta, Canada",
+            "summary": "Active wildfire monitored in Alberta, Canada.",
+            "content": "Persistent wildfire activity continues in Alberta.",
+            "url": "https://eonet.gsfc.nasa.gov/api/v3/events/EONET_1234",
+            "source_name": "NASA EONET",
+            "source_code": "eonet_events",
+            "source_url": "https://eonet.gsfc.nasa.gov/api/v3/events",
+            "source_class": "event",
+            "language": "en",
+            "country": "CA",
+            "category": "disaster",
+            "tags": ["wildfires", "natural_event"],
+            "heat_score": 72,
+            "hash": "eonet-hash-1",
+            "external_id": "EONET_1234",
+            "canonical_url": "https://eonet.gsfc.nasa.gov/api/v3/events/EONET_1234",
+            "event_time": first_seen.isoformat(),
+            "event_status": "open",
+            "source_updated_at": first_seen.isoformat(),
+            "geom_type": "Point",
+            "raw_geometry": {
+                "type": "GeometryCollection",
+                "geometries": [
+                    {
+                        "date": first_seen.isoformat(),
+                        "type": "Point",
+                        "coordinates": [-113.4, 53.5],
+                    }
+                ],
+            },
+            "display_geo": {"type": "Point", "coordinates": [-113.4, 53.5]},
+            "bbox": [-113.4, 53.5, -113.4, 53.5],
+            "geo_entities": [
+                {
+                    "name": "Wildfire near Alberta, Canada",
+                    "geo_key": "EONET:1234",
+                    "type": "point",
+                    "confidence": 0.98,
+                    "country_code": "CA",
+                    "country_name": "Canada",
+                    "precision_level": "POINT",
+                    "display_mode": "POINT",
+                    "geojson_key": "EONET:1234",
+                    "lat": 53.5,
+                    "lng": -113.4,
+                    "matched_text": "Alberta, Canada",
+                    "source_text_position": "title",
+                    "relevance_score": 0.98,
+                    "is_primary": True,
+                }
+            ],
+            "region_tags": ["CA"],
+        }
+
+        updated_payload = dict(payload)
+        updated_payload.update(
+            {
+                "summary": "Authorities say the wildfire remains active.",
+                "hash": "eonet-hash-2",
+                "heat_score": 84,
+                "event_status": "closed",
+                "closed_at": refreshed.isoformat(),
+                "source_updated_at": refreshed.isoformat(),
+            }
+        )
+
+        try:
+            with TestClient(app) as client:
+                first_response = client.post("/api/news/ingest", json=payload)
+                assert first_response.status_code == 200
+                assert first_response.json()["created_articles"] == 1
+
+                second_response = client.post("/api/news/ingest", json=updated_payload)
+                assert second_response.status_code == 200
+                assert second_response.json()["created_articles"] == 0
+                assert second_response.json()["events_touched"] == 1
+
+                db = TestSessionLocal()
+                try:
+                    articles = db.query(NewsArticle).filter(NewsArticle.source_code == "eonet_events").all()
+                    events = db.query(NewsEvent).filter(NewsEvent.source_code == "eonet_events").all()
+                    assert len(articles) == 1
+                    assert len(events) == 1
+
+                    event = events[0]
+                    assert event.external_id == "EONET_1234"
+                    assert event.event_status == "closed"
+                    assert event.closed_at is not None
+                    assert event.source_updated_at is not None
+                    assert event.article_count == 1
+                    assert event.geom_type == "Point"
+                    assert event.raw_geometry is not None
+                    assert event.display_geo == {"type": "Point", "coordinates": [-113.4, 53.5]}
+                    assert event.bbox == [-113.4, 53.5, -113.4, 53.5]
+                finally:
+                    db.close()
+        finally:
+            news_api._hot_news_cache.invalidate()
+            app.dependency_overrides.clear()
+            Base.metadata.drop_all(bind=test_engine)
+
+    def test_gdacs_ingest_enriches_existing_primary_event_without_creating_duplicate(self):
+        from app.models import Base, NewsArticle, NewsEvent
+        from app.main import app
+        from app.database import get_db
+        from app.api import news as news_api
+
+        test_engine = create_engine(
+            "sqlite:///:memory:",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+        Base.metadata.create_all(bind=test_engine)
+        TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+        def override_get_db():
+            db = TestSessionLocal()
+            try:
+                yield db
+            finally:
+                db.close()
+
+        app.dependency_overrides[get_db] = override_get_db
+        news_api._hot_news_cache.invalidate()
+
+        usgs_payload = {
+            "title": "M 5.6 - Offshore Taiwan",
+            "summary": "Moderate earthquake detected offshore Taiwan.",
+            "content": "USGS reported a moderate offshore Taiwan earthquake.",
+            "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000tw1",
+            "source_name": "USGS Earthquake Hazards",
+            "source_code": "earthquake_usgs",
+            "source_url": "https://earthquake.usgs.gov/earthquakes/feed/",
+            "source_class": "event",
+            "language": "en",
+            "country": "TW",
+            "category": "disaster",
+            "tags": ["earthquake", "disaster", "seismic"],
+            "heat_score": 70,
+            "hash": "usgs-gdacs-primary-hash",
+            "external_id": "us7000tw1",
+            "canonical_url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000tw1",
+            "event_time": "2026-04-06T08:00:00",
+            "source_updated_at": "2026-04-06T08:10:00",
+            "event_status": "closed",
+            "closed_at": "2026-04-06T08:00:00",
+            "severity": 72,
+            "confidence": 95,
+            "geom_type": "Point",
+            "raw_geometry": {"type": "Point", "coordinates": [121.6, 24.0]},
+            "display_geo": {"type": "Point", "coordinates": [121.6, 24.0]},
+            "bbox": [121.6, 24.0, 121.6, 24.0],
+            "geo_entities": [
+                {
+                    "name": "Offshore Taiwan",
+                    "geo_key": "USGS:us7000tw1",
+                    "type": "point",
+                    "confidence": 0.98,
+                    "country_code": "TW",
+                    "country_name": "Taiwan",
+                    "precision_level": "POINT",
+                    "display_mode": "POINT",
+                    "geojson_key": "USGS:us7000tw1",
+                    "lat": 24.0,
+                    "lng": 121.6,
+                    "matched_text": "Taiwan",
+                    "source_text_position": "title",
+                    "relevance_score": 0.98,
+                    "is_primary": True,
+                }
+            ],
+            "region_tags": ["TW"],
+        }
+
+        gdacs_payload = {
+            "title": "RED Earthquake in Taiwan",
+            "summary": "GDACS alert indicates potential humanitarian impact.",
+            "content": "GDACS raised a red earthquake alert for Taiwan after strong shaking.",
+            "url": "https://www.gdacs.org/report.aspx?eventid=1102983",
+            "source_name": "GDACS Alerts",
+            "source_code": "disaster_gdacs",
+            "source_url": "https://www.gdacs.org/gdacsapi/api/Events/geteventlist/SEARCH",
+            "source_class": "event",
+            "language": "en",
+            "country": "TW",
+            "category": "disaster",
+            "tags": ["earthquake", "disaster", "gdacs"],
+            "heat_score": 88,
+            "hash": "gdacs-enrichment-hash",
+            "external_id": "EQ:1102983",
+            "canonical_url": "https://www.gdacs.org/report.aspx?eventid=1102983",
+            "event_time": "2026-04-06T07:55:00",
+            "source_updated_at": "2026-04-06T08:15:00",
+            "event_status": "open",
+            "severity": 92,
+            "confidence": 90,
+            "geom_type": "Point",
+            "raw_geometry": {"type": "Point", "coordinates": [121.62, 24.02]},
+            "display_geo": {"type": "Point", "coordinates": [121.62, 24.02]},
+            "bbox": [121.62, 24.02, 121.62, 24.02],
+            "source_metadata": {
+                "role": "alert_enrichment",
+                "event_type": "EQ",
+                "alertlevel": "red",
+                "alertscore": 2.3,
+            },
+            "geo_entities": [
+                {
+                    "name": "Taiwan alert",
+                    "geo_key": "GDACS:EQ:1102983",
+                    "type": "point",
+                    "confidence": 0.94,
+                    "country_code": "TW",
+                    "country_name": "Taiwan",
+                    "precision_level": "POINT",
+                    "display_mode": "POINT",
+                    "geojson_key": "GDACS:EQ:1102983",
+                    "lat": 24.02,
+                    "lng": 121.62,
+                    "matched_text": "Taiwan",
+                    "source_text_position": "title",
+                    "relevance_score": 0.94,
+                    "is_primary": True,
+                }
+            ],
+            "region_tags": ["TW"],
+        }
+
+        try:
+            with TestClient(app) as client:
+                first = client.post("/api/news/ingest", json=usgs_payload)
+                assert first.status_code == 200
+                second = client.post("/api/news/ingest", json=gdacs_payload)
+                assert second.status_code == 200
+
+                db = TestSessionLocal()
+                try:
+                    events = db.query(NewsEvent).all()
+                    articles = db.query(NewsArticle).order_by(NewsArticle.source_code).all()
+                    assert len(events) == 1
+                    assert len(articles) == 2
+
+                    event = events[0]
+                    assert event.source_code == "earthquake_usgs"
+                    assert event.external_id == "us7000tw1"
+                    assert event.article_count == 2
+                    assert event.severity >= 88
+                    assert event.source_updated_at is not None
+                    assert event.source_metadata is not None
+                    assert "disaster_gdacs" in event.source_metadata["supporting_sources"]
+                    assert event.source_metadata["enrichment_sources"]["disaster_gdacs"]["alertlevel"] == "red"
+
+                    gdacs_article = next(article for article in articles if article.source_code == "disaster_gdacs")
+                    assert gdacs_article.source_metadata["role"] == "alert_enrichment"
+                    assert gdacs_article.external_id == "EQ:1102983"
+                finally:
+                    db.close()
+        finally:
+            news_api._hot_news_cache.invalidate()
+            app.dependency_overrides.clear()
+            Base.metadata.drop_all(bind=test_engine)
+
 
 # Performance tests
 class TestPerformance:
@@ -1194,3 +1612,122 @@ class TestPerformance:
 
             assert response.status_code == 200
             assert elapsed < 0.5, f"Response took {elapsed:.2f}s, expected < 0.5s"
+
+
+class TestSourceFeedControlApi:
+    """Tests for feed-level source control endpoints."""
+
+    def test_feed_control_endpoints(self):
+        from datetime import datetime
+
+        from app.models import Base, SourceFeedHealth, SourceFeedProfile
+        from app.main import app
+        from app.database import get_db
+
+        test_engine = create_engine(
+            "sqlite:///:memory:",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+        Base.metadata.create_all(bind=test_engine)
+        TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+        def override_get_db():
+            db = TestSessionLocal()
+            try:
+                yield db
+            finally:
+                db.close()
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        db = TestSessionLocal()
+        try:
+            db.add_all(
+                [
+                    SourceFeedProfile(
+                        id="feed-fox-latest",
+                        source_code="fox_news",
+                        feed_code="latest",
+                        feed_url="https://moxie.foxnews.com/google-publisher/latest.xml",
+                        feed_name="latest",
+                        priority=1,
+                        freshness_sla_hours=24,
+                        rollout_state="default",
+                        enabled=True,
+                        expected_update_interval_hours=1,
+                        license_mode="publisher_public_noncommercial",
+                    ),
+                    SourceFeedProfile(
+                        id="feed-nbc-public",
+                        source_code="nbc_news",
+                        feed_code="public_news",
+                        feed_url="https://feeds.nbcnews.com/nbcnews/public/news",
+                        feed_name="public_news",
+                        priority=1,
+                        freshness_sla_hours=24,
+                        rollout_state="poc",
+                        enabled=True,
+                        expected_update_interval_hours=4,
+                        license_mode="publisher_public",
+                    ),
+                    SourceFeedHealth(
+                        id="health-fox-latest",
+                        source_code="fox_news",
+                        feed_code="latest",
+                        feed_profile_id="feed-fox-latest",
+                        last_fetch_at=datetime.utcnow(),
+                        last_success_at=datetime.utcnow(),
+                        last_fresh_item_at=datetime.utcnow(),
+                        last_http_status=200,
+                        last_error=None,
+                        scraped_count_24h=8,
+                        dropped_stale_count_24h=1,
+                        dropped_quality_count_24h=1,
+                        stale_ratio_24h=0.125,
+                        direct_ok_rate_24h=1.0,
+                        consecutive_failures=0,
+                        direct_attempt_count_24h=6,
+                        direct_ok_count_24h=6,
+                        window_started_at=datetime.utcnow(),
+                    ),
+                ]
+            )
+            db.commit()
+        finally:
+            db.close()
+
+        try:
+            with TestClient(app) as client:
+                list_response = client.get("/api/sources/feeds")
+                assert list_response.status_code == 200
+                feeds = list_response.json()
+                assert len(feeds) == 2
+                assert feeds[0]["source_code"] == "fox_news"
+
+                health_response = client.get("/api/sources/feeds/health")
+                assert health_response.status_code == 200
+                health_items = {item["feed_profile_id"]: item for item in health_response.json()}
+                assert health_items["feed-fox-latest"]["scraped_count_24h"] == 8
+                assert health_items["feed-fox-latest"]["direct_ok_rate_24h"] == 1.0
+                assert health_items["feed-nbc-public"]["scraped_count_24h"] == 0
+
+                patch_response = client.patch(
+                    "/api/sources/feeds/feed-fox-latest",
+                    json={"priority": 3, "rollout_state": "canary"},
+                )
+                assert patch_response.status_code == 200
+                assert patch_response.json()["priority"] == 3
+                assert patch_response.json()["rollout_state"] == "canary"
+
+                promote_response = client.post("/api/sources/feeds/feed-nbc-public/promote", json={})
+                assert promote_response.status_code == 200
+                assert promote_response.json()["rollout_state"] == "canary"
+
+                pause_response = client.post("/api/sources/feeds/feed-fox-latest/pause")
+                assert pause_response.status_code == 200
+                assert pause_response.json()["rollout_state"] == "paused"
+                assert pause_response.json()["enabled"] is False
+        finally:
+            app.dependency_overrides.clear()
+            Base.metadata.drop_all(bind=test_engine)

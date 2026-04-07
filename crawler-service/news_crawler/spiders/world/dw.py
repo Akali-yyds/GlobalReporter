@@ -92,11 +92,21 @@ class DWSpider(BaseNewsSpider):
             item["source_name"] = self.source_name
             item["source_code"] = self.source_code
             item["source_url"] = self.source_url
+            item["source_class"] = "news"
+            item["source_tier"] = "authoritative"
+            item["source_tier_level"] = 2
+            item["freshness_sla_hours"] = 24
+            item["license_mode"] = "publisher_public"
             item["published_at"] = pub or None
             item["crawled_at"] = datetime.now().isoformat()
             item["language"] = lang
             item["country"] = self.country
             item["category"] = cat or self.category
+            item["canonical_url"] = link
+            item["source_metadata"] = {
+                "fetch_via": "official_rss",
+                "feed_url": response.url,
+            }
             item["heat_score"] = max(1, self.max_items - len(self.crawled_items))
             item["hash"] = self.compute_hash(title, self.source_code, link)
             self.crawled_items.append(item)

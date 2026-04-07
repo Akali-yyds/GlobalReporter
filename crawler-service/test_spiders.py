@@ -7,12 +7,17 @@ from pathlib import Path
 
 PYTHON = sys.executable
 SPIDERS = [
-    "bbc", "ap", "guardian", "aljazeera", "dw", "france24",
-    "cna", "scmp", "nhk", "ndtv",
+    "bbc", "ap", "guardian", "reuters", "abc_news", "voa", "cbs_news", "sky_news",
+    "pbs_newshour", "euronews", "nbc_news", "fox_news", "times_of_india",
+    "aljazeera", "dw", "france24",
+    "cna", "scmp", "straits_times", "nhk", "ndtv", "nhk_world",
     "sina", "global_times", "tencent",
     "bilibili_hot",
+    "earthquake_usgs", "eonet_events", "disaster_gdacs",
     "nasa_official", "openai_official", "google_blog",
+    "nvidia_official", "youtube_blog", "dod_official",
     "github_changelog", "github_openai_releases", "youtube_official",
+    "gdelt_doc_global",
 ]
 
 

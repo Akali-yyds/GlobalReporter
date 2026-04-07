@@ -37,6 +37,7 @@ class SpiderConfig:
     interval_minutes: int = 60
     max_items: int = 10
     priority: int = 0
+    feed_scope: str = "default"
 
 
 @dataclass
@@ -68,21 +69,38 @@ DEFAULT_SPIDERS: List[SpiderConfig] = [
     SpiderConfig(name='guardian',  interval_minutes=60, priority=6),
     # --- International ---
     SpiderConfig(name='reuters',   interval_minutes=60, priority=8),
+    SpiderConfig(name='abc_news',  interval_minutes=60, priority=7),
+    SpiderConfig(name='cbs_news',  interval_minutes=90, priority=6),
+    SpiderConfig(name='sky_news',  interval_minutes=60, priority=7),
+    SpiderConfig(name='pbs_newshour', interval_minutes=90, priority=6),
+    SpiderConfig(name='euronews',  interval_minutes=60, priority=7),
+    SpiderConfig(name='fox_news',  interval_minutes=60, priority=6),
+    SpiderConfig(name='times_of_india', interval_minutes=90, priority=6),
     SpiderConfig(name='aljazeera', interval_minutes=60, priority=6),
     SpiderConfig(name='dw',        interval_minutes=90, priority=5),
-    SpiderConfig(name='france24',  interval_minutes=90, priority=5),
     # --- Asia-Pacific ---
     SpiderConfig(name='cna',       interval_minutes=60, priority=6),
     SpiderConfig(name='scmp',      interval_minutes=60, priority=6),
+    SpiderConfig(name='straits_times', interval_minutes=90, priority=5),
     SpiderConfig(name='nhk',       interval_minutes=90, priority=5),
     SpiderConfig(name='ndtv',      interval_minutes=90, priority=5),
+    SpiderConfig(name='earthquake_usgs', interval_minutes=5, priority=9),
+    SpiderConfig(name='eonet_events', interval_minutes=30, priority=8),
+    SpiderConfig(name='disaster_gdacs', interval_minutes=10, priority=8),
+    SpiderConfig(name='earthquake_usgs_backfill', interval_minutes=240, priority=4),
+    SpiderConfig(name='eonet_events_backfill', interval_minutes=360, priority=4),
+    SpiderConfig(name='disaster_gdacs_backfill', interval_minutes=1440, priority=3),
     # --- Official / Community ---
     SpiderConfig(name='nasa_official', interval_minutes=120, priority=7),
     SpiderConfig(name='openai_official', interval_minutes=90, priority=8),
     SpiderConfig(name='google_blog', interval_minutes=90, priority=7),
+    SpiderConfig(name='nvidia_official', interval_minutes=180, priority=7),
+    SpiderConfig(name='youtube_blog', interval_minutes=180, priority=6),
+    SpiderConfig(name='dod_official', interval_minutes=180, priority=7),
     SpiderConfig(name='github_changelog', interval_minutes=60, priority=8),
     SpiderConfig(name='github_openai_releases', interval_minutes=120, priority=7),
     SpiderConfig(name='youtube_official', interval_minutes=60, priority=7),
+    SpiderConfig(name='gdelt_doc_global', interval_minutes=30, priority=8),
 ]
 
 
@@ -119,8 +137,9 @@ class CrawlerScheduler:
             result = cur.fetchone()
             return result['id'] if result else None
 
-    def get_last_job_time(self, spider_name: str) -> Optional[datetime]:
+    def get_last_job_time(self, spider_name: str, *, feed_scope: str = "default") -> Optional[datetime]:
         """Get the last job completion time for a spider."""
+        job_spider_name = spider_name if feed_scope == "default" else f"{spider_name}:{feed_scope}"
         with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
                 """
@@ -128,12 +147,12 @@ class CrawlerScheduler:
                 WHERE spider_name = %s AND status = 'completed'
                 ORDER BY started_at DESC LIMIT 1
                 """,
-                (spider_name,)
+                (job_spider_name,)
             )
             result = cur.fetchone()
             return result['started_at'] if result else None
 
-    def create_job(self, spider_name: str) -> Optional[CrawlJob]:
+    def create_job(self, spider_name: str, *, feed_scope: str = "default") -> Optional[CrawlJob]:
         """Create a new crawl job."""
         source_id = self.get_source_id(spider_name)
         if not source_id:
@@ -142,7 +161,7 @@ class CrawlerScheduler:
 
         job = CrawlJob(
             source_id=source_id,
-            spider_name=spider_name,
+            spider_name=spider_name if feed_scope == "default" else f"{spider_name}:{feed_scope}",
             status='pending',
             started_at=datetime.now()
         )
@@ -188,7 +207,22 @@ class CrawlerScheduler:
             )
             self.conn.commit()
 
-    def should_run(self, spider_name: str) -> bool:
+    def has_feed_rollout(self, spider_name: str, rollout_state: str) -> bool:
+        with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT 1
+                FROM source_feed_profiles
+                WHERE source_code = %s
+                  AND rollout_state = %s
+                  AND enabled = TRUE
+                LIMIT 1
+                """,
+                (spider_name, rollout_state),
+            )
+            return cur.fetchone() is not None
+
+    def should_run(self, spider_name: str, *, feed_scope: str = "default", interval_multiplier: int = 1) -> bool:
         """Check if spider should run based on interval."""
         if spider_name not in self.spider_configs:
             return False
@@ -197,27 +231,30 @@ class CrawlerScheduler:
         if not config.enabled:
             return False
 
-        last_run = self.get_last_job_time(spider_name)
+        last_run = self.get_last_job_time(spider_name, feed_scope=feed_scope)
         if not last_run:
             return True
 
         # Check if enough time has passed
         elapsed = datetime.now() - last_run
-        return elapsed >= timedelta(minutes=config.interval_minutes)
+        return elapsed >= timedelta(minutes=config.interval_minutes * max(1, interval_multiplier))
 
-    def get_spiders_to_run(self) -> List[str]:
-        """Get list of spiders that should run."""
-        return [
-            name for name in self.spider_configs
-            if self.should_run(name)
-        ]
+    def get_spiders_to_run(self) -> List[tuple[str, str]]:
+        """Get list of spiders/scopes that should run."""
+        runs: list[tuple[str, str]] = []
+        for name in self.spider_configs:
+            if self.should_run(name, feed_scope="default"):
+                runs.append((name, "default"))
+            if self.has_feed_rollout(name, "canary") and self.should_run(name, feed_scope="canary", interval_multiplier=6):
+                runs.append((name, "canary"))
+        return runs
 
-    def run_spider(self, spider_name: str) -> bool:
+    def run_spider(self, spider_name: str, *, feed_scope: str = "default") -> bool:
         """Run a single spider."""
-        logger.info(f"Starting spider: {spider_name}")
+        logger.info(f"Starting spider: {spider_name} (feed_scope={feed_scope})")
 
         # Create job
-        job = self.create_job(spider_name)
+        job = self.create_job(spider_name, feed_scope=feed_scope)
         if not job:
             return False
 
@@ -226,7 +263,7 @@ class CrawlerScheduler:
             import subprocess
             
             result = subprocess.run(
-                ['scrapy', 'crawl', spider_name, '-s', f'CLOSESPIDER_ITEMCOUNT={self.spider_configs[spider_name].max_items}'],
+                ['scrapy', 'crawl', spider_name, '-a', f'feed_scope={feed_scope}', '-s', f'CLOSESPIDER_ITEMCOUNT={self.spider_configs[spider_name].max_items}'],
                 cwd='.',
                 capture_output=True,
                 text=True,
@@ -270,23 +307,23 @@ class CrawlerScheduler:
 
     def run_all(self):
         """Run all due spiders."""
-        spiders = self.get_spiders_to_run()
-        if not spiders:
+        spider_runs = self.get_spiders_to_run()
+        if not spider_runs:
             logger.info("No spiders due to run")
             return
 
-        logger.info(f"Running {len(spiders)} spiders: {spiders}")
+        logger.info(f"Running {len(spider_runs)} spider jobs: {spider_runs}")
 
         # Sort by priority (higher first)
-        spiders.sort(key=lambda s: self.spider_configs[s].priority, reverse=True)
+        spider_runs.sort(key=lambda item: (self.spider_configs[item[0]].priority, item[1] == "default"), reverse=True)
 
         success_count = 0
-        for spider in spiders:
-            if self.run_spider(spider):
+        for spider, feed_scope in spider_runs:
+            if self.run_spider(spider, feed_scope=feed_scope):
                 success_count += 1
             time.sleep(5)  # Delay between spiders
 
-        logger.info(f"Completed {success_count}/{len(spiders)} spiders successfully")
+        logger.info(f"Completed {success_count}/{len(spider_runs)} spider jobs successfully")
 
     def run_daemon(self, check_interval: int = 60):
         """Run scheduler as a daemon."""
@@ -307,6 +344,7 @@ def main():
     parser.add_argument('--spider', '-s', help='Run specific spider')
     parser.add_argument('--all', '-a', action='store_true', help='Run all due spiders')
     parser.add_argument('--daemon', '-d', action='store_true', help='Run as daemon')
+    parser.add_argument('--feed-scope', default='default', choices=['default', 'canary', 'poc', 'all'], help='Feed rollout scope for --spider runs')
     parser.add_argument('--interval', type=int, default=60, help='Daemon check interval (seconds)')
     parser.add_argument('--database-url', help='Database URL')
 
@@ -315,7 +353,7 @@ def main():
     scheduler = CrawlerScheduler(args.database_url)
 
     if args.spider:
-        scheduler.run_spider(args.spider)
+        scheduler.run_spider(args.spider, feed_scope=args.feed_scope)
     elif args.all:
         scheduler.run_all()
     elif args.daemon:

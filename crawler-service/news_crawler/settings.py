@@ -73,9 +73,12 @@ EXTENSIONS = {
 # Configure item pipelines (ingest must run last)
 ITEM_PIPELINES = {
     "news_crawler.pipelines.NewsCrawlerPipeline": 300,
+    "news_crawler.pipelines.SourceProfilePipeline": 325,
+    "news_crawler.pipelines.EventSchemaPipeline": 340,
     "news_crawler.pipelines.IntakeQualityPipeline": 350,
     "news_crawler.pipelines.DeduplicationPipeline": 400,
     "news_crawler.pipelines.GeoExtractionPipeline": 450,
+    "news_crawler.pipelines.TimelinessPipeline": 475,
     "news_crawler.pipelines.ApiIngestPipeline": 500,
 }
 

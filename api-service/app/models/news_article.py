@@ -2,7 +2,7 @@
 NewsArticle model.
 """
 import json
-from sqlalchemy import Column, String, Integer, DateTime, Text
+from sqlalchemy import JSON, Column, String, Integer, DateTime, Text
 from sqlalchemy.types import TypeDecorator
 
 from app.models.base import BaseModel
@@ -37,11 +37,25 @@ class NewsArticle(BaseModel):
     source_name = Column(String(100), nullable=False)
     source_code = Column(String(50), nullable=False, index=True)
     source_url = Column(String(500), nullable=True)
+    source_class = Column(String(20), nullable=False, default="news", index=True)
     publish_time = Column(DateTime, nullable=True, index=True)
+    event_time = Column(DateTime, nullable=True, index=True)
     crawl_time = Column(DateTime, nullable=False, index=True)
+    freshness_sla_hours = Column(Integer, default=24, nullable=False)
     heat_score = Column(Integer, default=0, index=True)
+    severity = Column(Integer, default=0, index=True)
+    confidence = Column(Integer, default=100, nullable=False)
     category = Column(String(50), nullable=True, index=True)
     language = Column(String(10), nullable=False)
+    geo = Column(String(20), nullable=True, index=True)
+    geom_type = Column(String(20), nullable=True, index=True)
+    raw_geometry = Column(JSON, nullable=True)
+    display_geo = Column(JSON, nullable=True)
+    bbox = Column(JSON, nullable=True)
+    source_metadata = Column(JSON, nullable=True)
+    license_mode = Column(String(30), nullable=False, default="public_web")
+    canonical_url = Column(String(2000), nullable=True, index=True)
+    external_id = Column(String(255), nullable=True, index=True)
     country_tags = Column(JSONEncodedList, default=list)
     city_tags = Column(JSONEncodedList, default=list)
     region_tags = Column(JSONEncodedList, default=list)

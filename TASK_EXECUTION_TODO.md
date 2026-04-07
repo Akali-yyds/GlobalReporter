@@ -49,7 +49,10 @@ Current bottlenecks:
    Track per-source freshness, success rate, low-value ratio, and region extraction yield.
 
 10. Multi-dimensional frontend filtering
-    Support time + source tier + tags + geography combinations.
+   Support time + source tier + tags + geography combinations.
+
+11. Feed-level control plane
+   Promote feed definitions to first-class entities with rollout states, health metrics, and scheduler boundaries.
 
 ## Execution Phases
 
@@ -92,6 +95,20 @@ Scope:
 - Add source tiers
 - Add official-account ingestion
 - Add social-trend ingestion with separate weighting
+
+### Phase 3.5: Structured Event Sources
+
+Goal:
+
+- Add non-article event feeds without forcing them through the generic news lifecycle
+
+Scope:
+
+- Event lifecycle fields on `news_events`
+- Source-policy-driven event fetch parameters
+- `USGS` realtime earthquake ingestion
+- `NASA EONET` open-event ingestion
+- Event-source idempotency keyed by `(source_code, external_id)`
 
 ### Phase 4: Geo Deepening
 
@@ -167,6 +184,11 @@ Expected outcome of this round:
 - Source tiers are persisted on sources and aggregated events
 - Source-aware weighting is part of event heat calculation
 - Frontend sidebar supports source-tier filtering on the event feed
+- Source-policy overrides now drive event-source fetch parameters and SLA metadata
+- `news_events` now stores event lifecycle fields for structured event feeds
+- `USGS` and `EONET` can flow through a dedicated event lane instead of the generic news lane
+- `GDACS` can flow through the event lane as `alert / enrichment`, rather than a primary truth source
+- Feed-level rollout and health should now be treated as first-class platform controls before adding the next tranche of media sources
 
 ## Deferred For Later
 
@@ -199,16 +221,73 @@ Expected outcome of this round:
   - NASA RSS
   - OpenAI News RSS
   - Google Blog RSS
+  - NVIDIA Blog RSS
+  - YouTube Official Blog RSS
+  - U.S. Department of Defense RSS
   - GitHub Changelog
   - GitHub Releases
   - YouTube official-channel feeds
+- `GDELT DOC` lead ingestion added for global multi-language recall / blind-spot discovery
+- Tier-1 / Tier-2 media feed tranche hardened:
+  - BBC via official RSS
+  - The Guardian via fresher official RSS mix (`tone/news`, `uk-news`, `world`)
+  - Al Jazeera via official RSS
+  - Reuters via Google News site-search RSS fallback
+  - AP via Google News site-search RSS fallback
+- Asia/Pacific tier-2 feed tranche hardened:
+  - CNA via official RSS (`world` + main feed)
+  - Deutsche Welle via official English RSS
+  - SCMP via official RSS (`world` + `china`)
+  - The Straits Times via official section RSS (`world` + `asia`)
+  - FT official RSS validated as PoC only; kept out of default rollout
+- Additional RSS-first tier-2 media rollout:
+  - NDTV via official RSS with non-commercial license metadata
+  - ABC News via official RSS (`internationalheadlines` + `topstories`)
+  - VOA official RSS validated, but kept as PoC only because current feed freshness is stale for the 24h SLA
+  - CBS News via official RSS main feed
+  - Sky News via official RSS (`world` + `home`)
+  - PBS NewsHour via official RSS `headlines`
+  - Euronews via official public RSS `world/news`
+  - NBC News RSS validated as PoC only
+  - Fox News via official RSS (`latest`, `world`, `politics`)
+  - Times of India via official RSS (`top_stories`, `world`, `business`)
+  - PBS NewsHour expanded with `politics`
+  - Euronews expanded with `my_europe`
+  - NHK World validated as PoC only
+  - France24 kept as PoC only and removed from default rollout
+- API runner rotation now includes `reuters` and `ap` again after feed-first rebuild
+- Source-policy coverage now includes `bbc`, `guardian`, `aljazeera`, `reuters`, and `ap`
 - Bilibili hot-source filtering is narrowed toward tech / knowledge / current-affairs signals
 - Admin1 dictionaries now expand from 4 countries to the project's top 50 news countries
 - Admin1 dictionaries now carry multilingual aliases, including broad Chinese coverage for the 50-country set
+- `news_events` now includes `source_code`, `event_status`, `closed_at`, and `source_updated_at`
+- Event-source idempotent upsert now keys off `source_code + external_id`
+- `earthquake_usgs` event spider added with realtime GeoJSON feeds
+- `eonet_events` event spider added with open-event API polling
+- Event-source scheduling/rotation hooks added to API runner and crawler scheduler
+- Event-source regression tests added for pipeline, spider parsing, and API upsert behavior
+- Source job profiles/checkpoints now split realtime vs backfill execution for `USGS` and `EONET`
+- Event records now persist `raw_geometry`, `display_geo`, `bbox`, and `geom_type`
+- `earthquake_usgs_backfill` and `eonet_events_backfill` job variants are now runnable
+- Checkpoints now store `last_success_at`, `last_seen_external_id`, `last_seen_source_updated_at`, and `last_event_time`
+- `GDACS` source policy now uses API SEARCH as the primary fetch mode
+- `GDACS` realtime/backfill job profiles are now seeded and runnable
+- Checkpoints now also store `last_seen_page` and `last_query_window`
+- `news_articles` / `news_events` now persist `source_metadata` for source-native alert details
+- `disaster_gdacs` and `disaster_gdacs_backfill` spiders are integrated with scheduler/runner
+- GDACS ingest now enriches nearby `USGS / EONET` events instead of blindly creating a new primary event
+- GDACS regression coverage now includes spider parsing, checkpoint skip behavior, and API enrichment behavior
+- Feed profiles are now first-class rows in `source_feed_profiles`
+- Feed health snapshots are now persisted in `source_feed_health`
+- Feed control APIs now support list / health / patch / promote / pause flows
+- Feed-aware spiders now honor feed-level rollout state and per-feed SLA
+- Feed-level stale/direct-ok/failure rules can now auto-downgrade a feed from `default` to `canary` or `paused`
 
 ### Next
 
+- Preserve richer non-point event geometries end-to-end in frontend rendering
+- Add lightweight management views on top of the new feed-control APIs
+- Extend GDACS enrichment rules beyond the first `EQ / FL / TC` slice if needed
+- Add another tranche of tier-1 / tier-2 RSS-first media sources only after the feed-control plane is exercised
 - Tighten `bilibili_hot` further around higher-signal subcategories
 - Continue official/community source hardening and source-specific freshness behavior
-- Add persistent source-health history views and alert thresholds for long-term monitoring
-- Add targeted fallback translations for low-coverage countries such as Morocco, UAE, and Vietnam

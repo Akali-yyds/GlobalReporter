@@ -11,10 +11,11 @@ from email.utils import parsedate_to_datetime
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-from sqlalchemy import desc
+from sqlalchemy import and_, desc, or_
 from sqlalchemy.orm import Session
 
 from app.models import EventArticle, EventGeoMapping, GeoEntity, NewsArticle, NewsEvent, NewsSource
+from app.services.source_strategy import SOURCE_TIER_LEVEL, resolve_source_strategy
 
 
 _TRACKING_PARAMS = frozenset({
@@ -50,20 +51,6 @@ _SOURCE_TIER_HEAT_WEIGHT = {
     "community": 5,
     "social": 3,
 }
-_OFFICIAL_CODES = frozenset({
-    "nasa_official", "openai_official", "google_blog", "youtube_official",
-})
-_AUTHORITATIVE_CODES = frozenset({
-    "bbc", "reuters", "guardian", "dw", "france24", "nhk", "cna", "scmp",
-    "ndtv", "aljazeera", "global_times", "xinhua", "ap", "cnn", "ft", "npr", "unnews",
-})
-_AGGREGATOR_CODES = frozenset({"google_news_cn", "google_news_en", "google_news"})
-_SOCIAL_CODES = frozenset({"weibo", "bilibili_hot", "x_hot", "facebook_hot"})
-_COMMUNITY_CODES = frozenset({"github_trending", "github_releases", "reddit"})
-_OFFICIAL_HOST_HINTS = (
-    "openai.com", "anthropic.com", "google.com", "deepmind.google", "nasa.gov",
-    "who.int", "un.org", "github.blog", "blog.google", "newsroom",
-)
 
 
 def _normalize_url(url: str) -> str:
@@ -194,6 +181,136 @@ def _merge_tags(*groups: Any, limit: int = 20) -> List[str]:
     return merged
 
 
+def _normalize_confidence(value: Any, *, default: int = 100) -> int:
+    if value is None:
+        return default
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return default
+    if numeric <= 1:
+        numeric *= 100
+    return max(0, min(100, int(round(numeric))))
+
+
+def _normalize_severity(value: Any, *, default: int = 0) -> int:
+    if value is None:
+        return default
+    try:
+        return max(0, min(100, int(round(float(value)))))
+    except (TypeError, ValueError):
+        return default
+
+
+def _normalize_geo_marker(value: Any, geo_entities: List[dict]) -> Optional[str]:
+    raw = str(value or "").strip().lower()
+    if raw:
+        return raw[:20]
+    if not geo_entities:
+        return None
+    primary = geo_entities[0]
+    geo_type = _normalize_geo_type(primary.get("type"))
+    if geo_type == "city":
+        return "point"
+    if geo_type == "admin1":
+        return "admin1"
+    if geo_type == "country":
+        return "country"
+    return "polygon"
+
+
+def _normalize_event_status(value: Any, *, source_class: str) -> str:
+    normalized_class = (source_class or "news").strip().lower()
+    if normalized_class != "event":
+        return "closed"
+    status = str(value or "").strip().lower()
+    if status in {"open", "closed"}:
+        return status
+    if status in {"active", "ongoing"}:
+        return "open"
+    return "closed"
+
+
+def _normalize_geometry_json(value: Any) -> Optional[dict]:
+    if isinstance(value, dict):
+        return value
+    return None
+
+
+def _normalize_bbox(value: Any) -> Optional[list[float]]:
+    if not isinstance(value, (list, tuple)) or len(value) != 4:
+        return None
+    try:
+        return [float(part) for part in value]
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_metadata(value: Any) -> Optional[dict]:
+    if isinstance(value, dict):
+        return value
+    return None
+
+
+def _extract_point_from_geojson(value: Any) -> Optional[tuple[float, float]]:
+    if not isinstance(value, dict):
+        return None
+    geo_type = str(value.get("type") or "").strip()
+    coords = value.get("coordinates")
+    if geo_type == "Point" and isinstance(coords, list) and len(coords) >= 2:
+        try:
+            return float(coords[1]), float(coords[0])
+        except (TypeError, ValueError):
+            return None
+    if geo_type == "GeometryCollection":
+        geometries = value.get("geometries") or []
+        for geometry in geometries:
+            point = _extract_point_from_geojson(geometry)
+            if point:
+                return point
+    return None
+
+
+def _extract_point_from_event(event: NewsEvent) -> Optional[tuple[float, float]]:
+    return _extract_point_from_geojson(event.display_geo) or _extract_point_from_geojson(event.raw_geometry)
+
+
+def _haversine_km(left: tuple[float, float], right: tuple[float, float]) -> float:
+    import math
+
+    lat1, lon1 = map(math.radians, left)
+    lat2, lon2 = map(math.radians, right)
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return 6371.0 * c
+
+
+def _merge_source_metadata(
+    existing: Optional[dict],
+    incoming: Optional[dict],
+    *,
+    source_code: str,
+    enrich_only: bool,
+) -> Optional[dict]:
+    if not existing and not incoming:
+        return None
+    merged = dict(existing or {})
+    if incoming:
+        if enrich_only:
+            enrichment = dict(merged.get("enrichment_sources") or {})
+            enrichment[source_code] = incoming
+            merged["enrichment_sources"] = enrichment
+            supporting_sources = list(merged.get("supporting_sources") or [])
+            if source_code not in supporting_sources:
+                supporting_sources.append(source_code)
+            merged["supporting_sources"] = supporting_sources
+        else:
+            merged.update(incoming)
+    return merged
+
+
 def _best_source_tier(*tiers: Optional[str]) -> str:
     best = "social"
     best_priority = _SOURCE_TIER_PRIORITY[best]
@@ -237,6 +354,101 @@ def _classify_source_tier(*, code: str, base_url: str, category: str, name: str)
     return "authoritative"
 
 
+def _classify_source_class(*, code: str, base_url: str, category: str, name: str) -> str:
+    normalized_code = (code or "").strip().lower()
+    normalized_url = (base_url or "").strip().lower()
+    normalized_name = (name or "").strip().lower()
+    normalized_category = (category or "").strip().lower()
+
+    if normalized_code in _EVENT_CODES or normalized_category == "event":
+        return "event"
+    if normalized_code in _LEAD_CODES:
+        return "lead"
+    if normalized_category in {"social", "community", "official", "changelog", "lead"}:
+        return "lead"
+    if "changelog" in normalized_name or "release" in normalized_name:
+        return "lead"
+    if "github.blog" in normalized_url or "/releases" in normalized_url:
+        return "lead"
+    return "news"
+
+
+def _default_freshness_sla_hours(*, source_class: str, code: str, category: str) -> int:
+    normalized_code = (code or "").strip().lower()
+    normalized_category = (category or "").strip().lower()
+    normalized_class = (source_class or "news").strip().lower()
+
+    if normalized_class == "event":
+        if "earthquake" in normalized_code:
+            return 48
+        if any(token in normalized_code for token in ("gdacs", "eonet", "disaster", "wildfire", "volcano", "storm", "flood")):
+            return 72
+        return 72
+    if normalized_class == "lead":
+        if normalized_code in {"openai_official", "github_changelog", "github_openai_releases"}:
+            return 168
+        if normalized_code in {"youtube_official", "bilibili_hot", "weibo"}:
+            return 48
+        return 72
+    if normalized_category in {"breaking", "live"}:
+        return 12
+    return 24
+
+
+def _default_license_mode(*, source_tier: str, source_class: str, base_url: str) -> str:
+    normalized_tier = (source_tier or "").strip().lower()
+    normalized_class = (source_class or "").strip().lower()
+    normalized_url = (base_url or "").strip().lower()
+    if normalized_class == "event":
+        return "event_feed"
+    if normalized_tier == "official":
+        return "official_public"
+    if normalized_tier == "community":
+        return "community_public"
+    if normalized_tier == "aggregator" or "news.google.com" in normalized_url:
+        return "aggregated_public"
+    if normalized_tier == "social":
+        return "platform_public"
+    return "publisher_public"
+
+
+def _resolve_source_profile(
+    *,
+    code: str,
+    base_url: str,
+    category: str,
+    name: str,
+    source_class: Optional[str] = None,
+    freshness_sla_hours: Optional[int] = None,
+    license_mode: Optional[str] = None,
+) -> Dict[str, Any]:
+    resolved_class = (source_class or "").strip().lower() or _classify_source_class(
+        code=code,
+        base_url=base_url,
+        category=category,
+        name=name,
+    )
+    resolved_tier = _classify_source_tier(code=code, base_url=base_url, category=category, name=name)
+    resolved_tier_level = _SOURCE_TIER_LEVEL.get(resolved_tier, 2)
+    resolved_sla = int(freshness_sla_hours or _default_freshness_sla_hours(
+        source_class=resolved_class,
+        code=code,
+        category=category,
+    ))
+    resolved_license = (license_mode or "").strip().lower() or _default_license_mode(
+        source_tier=resolved_tier,
+        source_class=resolved_class,
+        base_url=base_url,
+    )
+    return {
+        "source_class": resolved_class,
+        "source_tier": resolved_tier,
+        "source_tier_level": resolved_tier_level,
+        "freshness_sla_hours": resolved_sla,
+        "license_mode": resolved_license,
+    }
+
+
 def get_or_create_source(
     db: Session,
     *,
@@ -246,12 +458,28 @@ def get_or_create_source(
     country: str,
     language: str,
     category: str,
+    source_class: Optional[str] = None,
+    freshness_sla_hours: Optional[int] = None,
+    license_mode: Optional[str] = None,
+    strategy: Optional[Dict[str, Any]] = None,
 ) -> NewsSource:
-    source_tier = _classify_source_tier(code=code, base_url=base_url, category=category, name=name)
+    profile = strategy or resolve_source_strategy(
+        db,
+        code=code,
+        base_url=base_url,
+        category=category,
+        name=name,
+        source_class=source_class,
+        freshness_sla_hours=freshness_sla_hours,
+        license_mode=license_mode,
+    )
     source = db.query(NewsSource).filter(NewsSource.code == code).first()
     if source:
-        if not getattr(source, "source_tier", None):
-            source.source_tier = source_tier
+        source.source_tier = profile["source_tier"]
+        source.source_class = profile["source_class"]
+        source.source_tier_level = profile["source_tier_level"]
+        source.freshness_sla_hours = profile["freshness_sla_hours"]
+        source.license_mode = profile["license_mode"]
         return source
 
     source = NewsSource(
@@ -261,7 +489,11 @@ def get_or_create_source(
         country=country or "CN",
         language=language or "zh",
         category=category or "news",
-        source_tier=source_tier,
+        source_class=profile["source_class"],
+        source_tier=profile["source_tier"],
+        source_tier_level=profile["source_tier_level"],
+        freshness_sla_hours=profile["freshness_sla_hours"],
+        license_mode=profile["license_mode"],
         is_active=True,
     )
     db.add(source)
@@ -288,6 +520,31 @@ def _precision_level_from_geo_type(geo_type: str) -> str:
 
 def _display_mode_from_geo_type(geo_type: str) -> str:
     return "POINT" if geo_type == "city" else "POLYGON"
+
+
+def _find_existing_article(
+    db: Session,
+    *,
+    hash_value: str,
+    url: str,
+    normalized_url: str,
+    canonical_url: str,
+    external_id: Optional[str],
+    source_code: str,
+    source_class: str,
+) -> Optional[NewsArticle]:
+    filters = [
+        NewsArticle.hash == hash_value,
+        NewsArticle.article_url == url,
+        NewsArticle.article_url == normalized_url,
+        NewsArticle.canonical_url == canonical_url,
+    ]
+    if external_id:
+        if source_class == "event":
+            filters.append(and_(NewsArticle.source_code == source_code, NewsArticle.external_id == external_id))
+        else:
+            filters.append(NewsArticle.external_id == external_id)
+    return db.query(NewsArticle).filter(or_(*filters)).first()
 
 
 def _event_similarity_score(
@@ -329,13 +586,70 @@ def _find_matching_event(
     *,
     title_hash: str,
     title: str,
+    source_code: str,
+    source_class: str,
+    canonical_url: Optional[str],
+    external_id: Optional[str],
     main_country: str,
     category: Optional[str],
     tags: List[str],
     incoming_source_tier: str,
     incoming_geo_keys: List[str],
+    event_time: Optional[datetime],
+    incoming_point: Optional[tuple[float, float]],
     now: datetime,
 ) -> Optional[NewsEvent]:
+    normalized_source_code = (source_code or "").strip().lower()
+    if normalized_source_code == "disaster_gdacs":
+        if external_id:
+            exact_external = (
+                db.query(NewsEvent)
+                .filter(
+                    NewsEvent.source_code == normalized_source_code,
+                    NewsEvent.external_id == external_id,
+                )
+                .first()
+            )
+            if exact_external:
+                return exact_external
+        return _find_gdacs_enrichment_target(
+            db,
+            main_country=main_country,
+            event_time=event_time,
+            incoming_point=incoming_point,
+            tags=tags,
+            now=now,
+        )
+    if source_class == "event":
+        if external_id:
+            exact_external = (
+                db.query(NewsEvent)
+                .filter(
+                    NewsEvent.source_code == normalized_source_code,
+                    NewsEvent.external_id == external_id,
+                )
+                .first()
+            )
+            if exact_external:
+                return exact_external
+        if canonical_url:
+            exact_canonical = (
+                db.query(NewsEvent)
+                .filter(
+                    NewsEvent.source_code == normalized_source_code,
+                    NewsEvent.canonical_url == canonical_url,
+                )
+                .first()
+            )
+            if exact_canonical:
+                return exact_canonical
+        return None
+
+    if external_id:
+        exact_external = db.query(NewsEvent).filter(NewsEvent.external_id == external_id).first()
+        if exact_external:
+            return exact_external
+
     exact = db.query(NewsEvent).filter(NewsEvent.title_hash == title_hash).first()
     if exact:
         return exact
@@ -365,6 +679,63 @@ def _find_matching_event(
             best_event = candidate
 
     return best_event if best_score >= _EVENT_MATCH_MIN_SCORE else None
+
+
+def _find_gdacs_enrichment_target(
+    db: Session,
+    *,
+    main_country: str,
+    event_time: Optional[datetime],
+    incoming_point: Optional[tuple[float, float]],
+    tags: List[str],
+    now: datetime,
+) -> Optional[NewsEvent]:
+    cutoff = now - timedelta(days=7)
+    query = db.query(NewsEvent).filter(NewsEvent.last_seen_at >= cutoff)
+    if main_country:
+        query = query.filter(NewsEvent.main_country == main_country)
+    candidates = query.order_by(desc(NewsEvent.last_seen_at)).limit(100).all()
+    incoming_tags = set(tags)
+
+    best: Optional[NewsEvent] = None
+    best_score = 0.0
+    for candidate in candidates:
+        if (candidate.source_code or "").strip().lower() == "disaster_gdacs":
+            continue
+        candidate_tags = set(_normalize_tags(candidate.tags))
+        if incoming_tags and candidate_tags and not (incoming_tags & candidate_tags):
+            continue
+        score = 0.0
+        if event_time and candidate.event_time:
+            delta_hours = abs((candidate.event_time - event_time).total_seconds()) / 3600.0
+            if delta_hours <= 12:
+                score += 0.45
+            elif delta_hours <= 48:
+                score += 0.28
+            elif delta_hours <= 120:
+                score += 0.12
+        if incoming_tags & candidate_tags:
+            score += 0.25
+
+        candidate_point = _extract_point_from_event(candidate)
+        if incoming_point and candidate_point:
+            distance_km = _haversine_km(incoming_point, candidate_point)
+            if distance_km <= 150:
+                score += 0.35
+            elif distance_km <= 500:
+                score += 0.22
+            elif distance_km <= 1200:
+                score += 0.08
+        elif incoming_point is None:
+            score += 0.08
+
+        if candidate.category == "disaster":
+            score += 0.08
+        if score > best_score:
+            best_score = score
+            best = candidate
+
+    return best if best_score >= 0.45 else None
 
 
 def _latest_signal_time(*values: Optional[datetime]) -> Optional[datetime]:
@@ -524,10 +895,11 @@ def _compute_event_heat(
     topic_bonus = _topic_heat_bonus(event.category, merged_tags)
     geo_bonus = _event_level_heat_bonus(event.event_level or "country")
     recency_bonus = _recency_heat_bonus(max(signal_times) if signal_times else None, now)
+    severity_bonus = min(24, int(round((event.severity or 0) * 0.24)))
 
     return min(
         9999,
-        max(1, signal_score + article_bonus + source_bonus + tier_bonus + topic_bonus + geo_bonus + recency_bonus),
+        max(1, signal_score + article_bonus + source_bonus + tier_bonus + topic_bonus + geo_bonus + recency_bonus + severity_bonus),
     )
 
 
@@ -619,34 +991,64 @@ def ingest_crawled_articles(db: Session, items: List[dict]) -> dict:
             continue
 
         normalized_url = _normalize_url(url)
-        duplicate = (
-            db.query(NewsArticle)
-            .filter(
-                (NewsArticle.hash == hash_value)
-                | (NewsArticle.article_url == url)
-                | (NewsArticle.article_url == normalized_url)
-            )
-            .first()
+        canonical_url = (raw.get("canonical_url") or normalized_url or url).strip()
+        external_id = str(raw.get("external_id") or "").strip() or None
+        raw_source_code = (raw.get("source_code") or "unknown").strip().lower()
+        strategy = resolve_source_strategy(
+            db,
+            code=raw_source_code,
+            base_url=raw.get("source_url") or url,
+            category=raw.get("category") or "news",
+            name=raw.get("source_name") or "Unknown",
+            source_class=raw.get("source_class"),
+            freshness_sla_hours=raw.get("freshness_sla_hours"),
+            license_mode=raw.get("license_mode"),
         )
-        if duplicate:
+        if not strategy.get("enabled", True):
+            skipped += 1
+            continue
+        source_class = (raw.get("source_class") or strategy["source_class"] or "news").strip().lower()
+        duplicate = _find_existing_article(
+            db,
+            hash_value=hash_value,
+            url=url,
+            normalized_url=normalized_url,
+            canonical_url=canonical_url,
+            external_id=external_id,
+            source_code=raw_source_code,
+            source_class=source_class,
+        )
+        if duplicate and source_class != "event":
             skipped += 1
             continue
 
         source = get_or_create_source(
             db,
             name=raw.get("source_name") or "Unknown",
-            code=raw.get("source_code") or "unknown",
+            code=raw_source_code,
             base_url=raw.get("source_url") or url,
             country=raw.get("country") or "CN",
             language=raw.get("language") or "zh",
             category=raw.get("category") or "news",
+            source_class=raw.get("source_class"),
+            freshness_sla_hours=raw.get("freshness_sla_hours"),
+            license_mode=raw.get("license_mode"),
+            strategy=strategy,
         )
         source_tier = source.source_tier or "authoritative"
+        source_class = (raw.get("source_class") or strategy["source_class"] or source.source_class or "news").strip().lower()
+        source_tier_level = int(raw.get("source_tier_level") or source.source_tier_level or _SOURCE_TIER_LEVEL.get(source_tier, 2))
+        freshness_sla_hours = int(raw.get("freshness_sla_hours") or strategy["freshness_sla_hours"] or source.freshness_sla_hours or 24)
+        license_mode = (raw.get("license_mode") or strategy["license_mode"] or source.license_mode or "public_web").strip().lower()
 
         now = datetime.now(timezone.utc).replace(tzinfo=None)
         crawl_time = _parse_datetime(raw.get("crawled_at")) or now
         publish_time = _parse_datetime(raw.get("published_at"))
-        signal_time = _latest_signal_time(publish_time, crawl_time)
+        event_time = _parse_datetime(raw.get("event_time"))
+        event_status = _normalize_event_status(raw.get("event_status"), source_class=source_class)
+        closed_at = _parse_datetime(raw.get("closed_at"))
+        source_updated_at = _parse_datetime(raw.get("source_updated_at"))
+        signal_time = _latest_signal_time(source_updated_at, closed_at, event_time, publish_time, crawl_time)
 
         tags = _normalize_tags(raw.get("tags"))
         region_tags = raw.get("region_tags") or []
@@ -657,6 +1059,19 @@ def ingest_crawled_articles(db: Session, items: List[dict]) -> dict:
         raw_geo_entities = raw.get("geo_entities") or []
         if not isinstance(raw_geo_entities, list):
             raw_geo_entities = []
+        geo_marker = _normalize_geo_marker(raw.get("geo"), raw_geo_entities)
+        geom_type = str(raw.get("geom_type") or "").strip() or None
+        raw_geometry = _normalize_geometry_json(raw.get("raw_geometry"))
+        display_geo = _normalize_geometry_json(raw.get("display_geo"))
+        bbox = _normalize_bbox(raw.get("bbox"))
+        source_metadata = _normalize_metadata(raw.get("source_metadata"))
+        incoming_point = _extract_point_from_geojson(display_geo) or _extract_point_from_geojson(raw_geometry)
+        if display_geo and not geom_type:
+            geom_type = str(display_geo.get("type") or "").strip() or None
+        severity = _normalize_severity(raw.get("severity"))
+        confidence = _normalize_confidence(raw.get("confidence"))
+        canonical_url = canonical_url[:2000]
+        external_id = external_id[:255] if external_id else None
 
         main_country = ""
         event_level = "country"
@@ -669,28 +1084,78 @@ def ingest_crawled_articles(db: Session, items: List[dict]) -> dict:
         if not main_country:
             main_country = (raw.get("country") or "CN")[:10]
 
-        article = NewsArticle(
-            title=title[:500],
-            summary=raw.get("summary") or None,
-            content=raw.get("content") or None,
-            article_url=url[:2000],
-            source_id=source.id,
-            source_name=source.name,
-            source_code=source.code,
-            source_url=source.base_url,
-            publish_time=publish_time,
-            crawl_time=crawl_time,
-            heat_score=int(raw.get("heat_score") or 0),
-            category=raw.get("category") or None,
-            language=(raw.get("language") or "zh")[:10],
-            country_tags=[raw.get("country")] if raw.get("country") else [],
-            city_tags=[],
-            region_tags=region_tags,
-            tags=tags,
-            hash=hash_value[:64],
-        )
-        db.add(article)
-        db.flush()
+        article_created = duplicate is None
+        if duplicate is None:
+            article = NewsArticle(
+                title=title[:500],
+                summary=raw.get("summary") or None,
+                content=raw.get("content") or None,
+                article_url=url[:2000],
+                source_id=source.id,
+                source_name=source.name,
+                source_code=source.code,
+                source_url=source.base_url,
+                source_class=source_class,
+                publish_time=publish_time,
+                event_time=event_time,
+                crawl_time=crawl_time,
+                freshness_sla_hours=freshness_sla_hours,
+                heat_score=int(raw.get("heat_score") or 0),
+                severity=severity,
+                confidence=confidence,
+                category=raw.get("category") or None,
+                language=(raw.get("language") or "zh")[:10],
+                geo=geo_marker,
+                geom_type=geom_type,
+                raw_geometry=raw_geometry,
+                display_geo=display_geo,
+                bbox=bbox,
+                source_metadata=source_metadata,
+                license_mode=license_mode,
+                canonical_url=canonical_url,
+                external_id=external_id,
+                country_tags=[raw.get("country")] if raw.get("country") else [],
+                city_tags=[],
+                region_tags=region_tags,
+                tags=tags,
+                hash=hash_value[:64],
+            )
+            db.add(article)
+            db.flush()
+        else:
+            article = duplicate
+            article.title = title[:500]
+            article.summary = raw.get("summary") or None
+            article.content = raw.get("content") or None
+            article.article_url = url[:2000]
+            article.source_id = source.id
+            article.source_name = source.name
+            article.source_code = source.code
+            article.source_url = source.base_url
+            article.source_class = source_class
+            article.publish_time = publish_time
+            article.event_time = event_time
+            article.crawl_time = crawl_time
+            article.freshness_sla_hours = freshness_sla_hours
+            article.heat_score = int(raw.get("heat_score") or 0)
+            article.severity = severity
+            article.confidence = confidence
+            article.category = raw.get("category") or None
+            article.language = (raw.get("language") or "zh")[:10]
+            article.geo = geo_marker
+            article.geom_type = geom_type
+            article.raw_geometry = raw_geometry
+            article.display_geo = display_geo
+            article.bbox = bbox
+            article.source_metadata = source_metadata
+            article.license_mode = license_mode
+            article.canonical_url = canonical_url
+            article.external_id = external_id
+            article.country_tags = [raw.get("country")] if raw.get("country") else []
+            article.city_tags = []
+            article.region_tags = region_tags
+            article.tags = tags
+            article.hash = hash_value[:64]
 
         title_hash = _normalize_title_hash(title)
         summary = (raw.get("summary") or "")[:2000] if raw.get("summary") else None
@@ -701,6 +1166,10 @@ def ingest_crawled_articles(db: Session, items: List[dict]) -> dict:
             db,
             title_hash=title_hash,
             title=title,
+            source_code=source.code,
+            source_class=source_class,
+            canonical_url=canonical_url,
+            external_id=external_id,
             main_country=main_country,
             category=category,
             tags=tags,
@@ -710,13 +1179,23 @@ def ingest_crawled_articles(db: Session, items: List[dict]) -> dict:
                 for payload in raw_geo_entities
                 if isinstance(payload, dict)
             ],
+            event_time=event_time,
+            incoming_point=incoming_point,
             now=now,
         )
         is_new_event = event is None
+        existing_link = None
+        is_enrichment_update = source.code == "disaster_gdacs" and event is not None and (event.source_code or "") != source.code
 
         if event:
             event.last_seen_at = now
-            event.article_count = (event.article_count or 0) + 1
+            existing_link = (
+                db.query(EventArticle)
+                .filter(EventArticle.event_id == event.id, EventArticle.article_id == article.id)
+                .first()
+            )
+            if existing_link is None:
+                event.article_count = (event.article_count or 0) + 1
             if not event.main_country and main_country:
                 event.main_country = main_country
             if event_level in {"admin1", "city"} and event.event_level == "country":
@@ -727,7 +1206,50 @@ def ingest_crawled_articles(db: Session, items: List[dict]) -> dict:
                 event.category = category
             merged_tags = _merge_tags(event.tags, tags)
             event.tags = merged_tags
-            event.source_tier = _best_source_tier(event.source_tier, source_tier)
+            event.source_class = source_class or event.source_class
+            if (source_class == "event" and not is_enrichment_update) or not event.source_code:
+                event.source_code = source.code
+            if not is_enrichment_update:
+                event.source_tier = _best_source_tier(event.source_tier, source_tier)
+                event.source_tier_level = min(event.source_tier_level or source_tier_level, source_tier_level)
+            event.freshness_sla_hours = max(event.freshness_sla_hours or freshness_sla_hours, freshness_sla_hours)
+            event.event_time = _latest_signal_time(event.event_time, event_time)
+            event.source_updated_at = _latest_signal_time(event.source_updated_at, source_updated_at)
+            if source_class == "event":
+                if not is_enrichment_update or event.event_status != "open":
+                    event.event_status = event_status
+                if not is_enrichment_update:
+                    event.closed_at = None if event_status == "open" else _latest_signal_time(event.closed_at, closed_at, event_time)
+                elif event_status != "open":
+                    event.closed_at = _latest_signal_time(event.closed_at, closed_at, event_time)
+            event.severity = max(event.severity or 0, severity)
+            event.confidence = max(event.confidence or 0, confidence)
+            event.geo = event.geo or geo_marker
+            if source_class == "event":
+                if not is_enrichment_update:
+                    event.geom_type = geom_type or event.geom_type
+                    event.raw_geometry = raw_geometry or event.raw_geometry
+                    event.display_geo = display_geo or event.display_geo
+                    event.bbox = bbox or event.bbox
+            else:
+                event.geom_type = event.geom_type or geom_type
+                event.raw_geometry = event.raw_geometry or raw_geometry
+                event.display_geo = event.display_geo or display_geo
+                event.bbox = event.bbox or bbox
+            event.source_metadata = _merge_source_metadata(
+                event.source_metadata,
+                source_metadata,
+                source_code=source.code,
+                enrich_only=is_enrichment_update,
+            )
+            event.license_mode = (
+                event.license_mode if is_enrichment_update else
+                (license_mode if source_class == "event" else (event.license_mode or license_mode))
+            )
+            if canonical_url and ((source_class == "event" and not is_enrichment_update) or not event.canonical_url):
+                event.canonical_url = canonical_url
+            if external_id and ((source_class == "event" and not is_enrichment_update) or not event.external_id):
+                event.external_id = external_id
             event.heat_score = _compute_event_heat(
                 db=db,
                 event=event,
@@ -745,11 +1267,30 @@ def ingest_crawled_articles(db: Session, items: List[dict]) -> dict:
                 summary=summary,
                 main_country=main_country,
                 event_level=event_level,
+                source_code=source.code,
+                source_class=source_class,
                 heat_score=1,
+                severity=severity,
+                confidence=confidence,
                 article_count=1,
                 category=category,
+                geo=geo_marker,
+                geom_type=geom_type,
+                raw_geometry=raw_geometry,
+                display_geo=display_geo,
+                bbox=bbox,
+                source_metadata=source_metadata,
                 tags=tags,
                 source_tier=source_tier,
+                source_tier_level=source_tier_level,
+                freshness_sla_hours=freshness_sla_hours,
+                event_time=event_time,
+                event_status=event_status,
+                closed_at=None if event_status == "open" else _latest_signal_time(closed_at, event_time),
+                source_updated_at=source_updated_at,
+                license_mode=license_mode,
+                canonical_url=canonical_url,
+                external_id=external_id,
                 title_hash=title_hash,
                 first_seen_at=now,
                 last_seen_at=now,
@@ -768,11 +1309,13 @@ def ingest_crawled_articles(db: Session, items: List[dict]) -> dict:
             )
             events_touched += 1
 
-        link = EventArticle(event_id=event.id, article_id=article.id, is_primary=is_new_event)
-        db.add(link)
+        if existing_link is None:
+            link = EventArticle(event_id=event.id, article_id=article.id, is_primary=is_new_event)
+            db.add(link)
         _sync_event_geo_mappings(db, event, raw_geo_entities)
 
-        created_articles += 1
+        if article_created:
+            created_articles += 1
 
     db.commit()
     return {

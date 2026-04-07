@@ -47,6 +47,7 @@ class BaseNewsSpider(Spider):
     def __init__(self, *args, **kwargs):
         # Scrapy CLI: scrapy crawl spider -a max_items=80
         max_items_raw = kwargs.pop("max_items", None)
+        self.feed_scope = str(kwargs.pop("feed_scope", "default") or "default").strip().lower()
         super().__init__(*args, **kwargs)
         if max_items_raw is not None:
             try:
@@ -55,6 +56,9 @@ class BaseNewsSpider(Spider):
                 pass
         self.crawled_items: List[Item] = []
         self.start_time: Optional[datetime] = None
+        self._feed_runtime = {}
+        self._feed_configs_by_url = {}
+        self._feed_configs_by_code = {}
 
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
@@ -214,6 +218,12 @@ class BaseNewsSpider(Spider):
     
     def closed(self, reason: str):
         """Called when spider is closed."""
+        try:
+            from news_crawler.utils.feed_control import flush_feed_health
+
+            flush_feed_health(self)
+        except Exception:
+            logger.debug("Failed to flush feed health for %s", self.name, exc_info=True)
         elapsed = ""
         if self.start_time is not None:
             elapsed = f"{(datetime.now() - self.start_time).total_seconds():.2f}s"
@@ -224,6 +234,44 @@ class BaseNewsSpider(Spider):
             len(self.crawled_items),
             elapsed or "n/a",
         )
+
+    def get_controlled_feeds(self, fallback_feeds: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        from news_crawler.utils.feed_control import initialize_feed_runtime, resolve_feed_profiles
+
+        feeds = resolve_feed_profiles(
+            self.source_code,
+            list(fallback_feeds or []),
+            feed_scope=self.feed_scope,
+        )
+        initialize_feed_runtime(self, feeds)
+        return feeds
+
+    def get_response_feed(self, response: Response, fallback_feeds: List[Dict[str, Any]]) -> Dict[str, Any]:
+        from news_crawler.utils.feed_control import feed_for_response
+
+        return feed_for_response(self, response, list(fallback_feeds or []))
+
+    def handle_feed_error(self, failure) -> None:
+        from news_crawler.utils.feed_control import record_feed_fetch
+
+        request = getattr(failure, "request", None)
+        meta = getattr(request, "meta", {}) if request else {}
+        response = getattr(getattr(failure, "value", None), "response", None)
+        feed_code = str(meta.get("feed_code") or meta.get("feed_name") or "default").strip()
+        feed_name = str(meta.get("feed_name") or feed_code).strip()
+        feed_url = getattr(request, "url", None)
+        http_status = getattr(response, "status", None)
+        error_text = str(getattr(failure, "value", failure))
+        record_feed_fetch(
+            self,
+            feed_code=feed_code,
+            feed_name=feed_name,
+            feed_url=feed_url,
+            http_status=http_status,
+            success=False,
+            error=error_text[:500],
+        )
+        logger.warning("Feed request failed spider=%s feed=%s status=%s error=%s", self.name, feed_name, http_status, error_text[:300])
 
 
 class NewsSpiderMixin:

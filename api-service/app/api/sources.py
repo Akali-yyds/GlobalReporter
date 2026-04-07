@@ -7,14 +7,41 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import CrawlJob, EventArticle, NewsArticle, NewsEvent, NewsSource
-from app.schemas.source import NewsSourceResponse, SourceAnalyticsItem, SourceAnalyticsResponse, SourceTierAnalyticsItem
+from app.models import (
+    CrawlJob,
+    EventArticle,
+    NewsArticle,
+    NewsEvent,
+    NewsSource,
+    SourceFeedHealth,
+    SourceFeedProfile,
+    SourcePolicy,
+)
+from app.schemas.source import (
+    NewsSourceResponse,
+    SourceAnalyticsItem,
+    SourceAnalyticsResponse,
+    SourceFeedHealthItem,
+    SourceFeedProfilePatchRequest,
+    SourceFeedProfileResponse,
+    SourceFeedPromoteRequest,
+    SourcePolicyResponse,
+    SourceTierAnalyticsItem,
+)
 
 router = APIRouter()
 
 _LOW_SIGNAL_CATEGORIES = {"social", "news", "general", "misc", "community"}
 _ALWAYS_NOISY_CATEGORIES = {"entertainment", "celebrity", "variety"}
 _FINE_GRAIN_EVENT_LEVELS = {"admin1", "admin2", "city", "district", "point"}
+_ROLLOUT_STATES = ("draft", "poc", "canary", "default", "paused")
+_PROMOTION_CHAIN = {
+    "draft": "poc",
+    "poc": "canary",
+    "canary": "default",
+    "default": "default",
+    "paused": "canary",
+}
 
 
 def _ratio(numerator: int, denominator: int) -> float:
@@ -25,6 +52,15 @@ def _ratio(numerator: int, denominator: int) -> float:
 
 def _latest_article_time(article: NewsArticle) -> datetime | None:
     return article.publish_time or article.crawl_time
+
+
+def _validate_rollout_state(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    if normalized not in _ROLLOUT_STATES:
+        raise HTTPException(status_code=400, detail=f"Invalid rollout_state: {value}")
+    return normalized
 
 
 def _has_geo(article: NewsArticle) -> bool:
@@ -61,6 +97,157 @@ async def get_sources(
 
     sources = query.order_by(NewsSource.name).all()
     return sources
+
+
+@router.get("/policies", response_model=list[SourcePolicyResponse])
+async def get_source_policies(
+    source_class: str | None = Query(None, pattern="^(news|lead|event)$"),
+    enabled_only: bool = False,
+    db: Session = Depends(get_db),
+):
+    query = db.query(SourcePolicy)
+    if source_class:
+        query = query.filter(SourcePolicy.source_class == source_class)
+    if enabled_only:
+        query = query.filter(SourcePolicy.enabled == True)
+    return query.order_by(SourcePolicy.source_code).all()
+
+
+@router.get("/feeds", response_model=list[SourceFeedProfileResponse])
+async def get_source_feeds(
+    source_code: str | None = None,
+    rollout_state: str | None = Query(None, pattern="^(draft|poc|canary|default|paused)$"),
+    enabled_only: bool = False,
+    db: Session = Depends(get_db),
+):
+    query = db.query(SourceFeedProfile)
+    if source_code:
+        query = query.filter(SourceFeedProfile.source_code == source_code)
+    if rollout_state:
+        query = query.filter(SourceFeedProfile.rollout_state == rollout_state)
+    if enabled_only:
+        query = query.filter(SourceFeedProfile.enabled == True)
+    return query.order_by(
+        SourceFeedProfile.source_code,
+        SourceFeedProfile.priority.asc(),
+        SourceFeedProfile.feed_name.asc(),
+    ).all()
+
+
+@router.get("/feeds/health", response_model=list[SourceFeedHealthItem])
+async def get_source_feed_health(
+    source_code: str | None = None,
+    rollout_state: str | None = Query(None, pattern="^(draft|poc|canary|default|paused)$"),
+    enabled_only: bool = False,
+    db: Session = Depends(get_db),
+):
+    query = (
+        db.query(SourceFeedProfile, SourceFeedHealth)
+        .outerjoin(
+            SourceFeedHealth,
+            (SourceFeedHealth.source_code == SourceFeedProfile.source_code)
+            & (SourceFeedHealth.feed_code == SourceFeedProfile.feed_code),
+        )
+    )
+    if source_code:
+        query = query.filter(SourceFeedProfile.source_code == source_code)
+    if rollout_state:
+        query = query.filter(SourceFeedProfile.rollout_state == rollout_state)
+    if enabled_only:
+        query = query.filter(SourceFeedProfile.enabled == True)
+
+    rows = query.order_by(
+        SourceFeedProfile.source_code,
+        SourceFeedProfile.priority.asc(),
+        SourceFeedProfile.feed_name.asc(),
+    ).all()
+    items: list[SourceFeedHealthItem] = []
+    for feed, health in rows:
+        items.append(
+            SourceFeedHealthItem(
+                feed_profile_id=feed.id,
+                source_code=feed.source_code,
+                feed_code=feed.feed_code,
+                feed_name=feed.feed_name,
+                feed_url=feed.feed_url,
+                priority=feed.priority,
+                freshness_sla_hours=feed.freshness_sla_hours,
+                rollout_state=feed.rollout_state,
+                enabled=bool(feed.enabled),
+                expected_update_interval_hours=feed.expected_update_interval_hours,
+                license_mode=feed.license_mode,
+                last_fetch_at=health.last_fetch_at if health else None,
+                last_success_at=health.last_success_at if health else None,
+                last_fresh_item_at=health.last_fresh_item_at if health else None,
+                last_http_status=health.last_http_status if health else None,
+                last_error=health.last_error if health else None,
+                scraped_count_24h=int(health.scraped_count_24h or 0) if health else 0,
+                dropped_stale_count_24h=int(health.dropped_stale_count_24h or 0) if health else 0,
+                dropped_quality_count_24h=int(health.dropped_quality_count_24h or 0) if health else 0,
+                stale_ratio_24h=float(health.stale_ratio_24h or 0.0) if health else 0.0,
+                direct_ok_rate_24h=float(health.direct_ok_rate_24h or 0.0) if health else 0.0,
+                consecutive_failures=int(health.consecutive_failures or 0) if health else 0,
+            )
+        )
+    return items
+
+
+@router.patch("/feeds/{feed_id}", response_model=SourceFeedProfileResponse)
+async def patch_source_feed(
+    feed_id: str,
+    payload: SourceFeedProfilePatchRequest,
+    db: Session = Depends(get_db),
+):
+    feed = db.query(SourceFeedProfile).filter(SourceFeedProfile.id == feed_id).first()
+    if feed is None:
+        raise HTTPException(status_code=404, detail="Feed profile not found")
+
+    data = payload.model_dump(exclude_unset=True)
+    if "rollout_state" in data:
+        data["rollout_state"] = _validate_rollout_state(data["rollout_state"])
+
+    for key, value in data.items():
+        setattr(feed, key, value)
+    db.commit()
+    db.refresh(feed)
+    return feed
+
+
+@router.post("/feeds/{feed_id}/promote", response_model=SourceFeedProfileResponse)
+async def promote_source_feed(
+    feed_id: str,
+    payload: SourceFeedPromoteRequest,
+    db: Session = Depends(get_db),
+):
+    feed = db.query(SourceFeedProfile).filter(SourceFeedProfile.id == feed_id).first()
+    if feed is None:
+        raise HTTPException(status_code=404, detail="Feed profile not found")
+
+    target_state = _validate_rollout_state(payload.target_state) if payload.target_state else _PROMOTION_CHAIN.get(feed.rollout_state, "default")
+    if target_state == "paused":
+        raise HTTPException(status_code=400, detail="Use /pause to pause a feed")
+
+    feed.rollout_state = target_state
+    feed.enabled = target_state != "draft"
+    db.commit()
+    db.refresh(feed)
+    return feed
+
+
+@router.post("/feeds/{feed_id}/pause", response_model=SourceFeedProfileResponse)
+async def pause_source_feed(
+    feed_id: str,
+    db: Session = Depends(get_db),
+):
+    feed = db.query(SourceFeedProfile).filter(SourceFeedProfile.id == feed_id).first()
+    if feed is None:
+        raise HTTPException(status_code=404, detail="Feed profile not found")
+
+    feed.rollout_state = "paused"
+    feed.enabled = False
+    db.commit()
+    db.refresh(feed)
+    return feed
 
 
 @router.get("/analytics", response_model=SourceAnalyticsResponse)
@@ -134,7 +321,11 @@ async def get_source_analytics(
             SourceAnalyticsItem(
                 code=source.code,
                 name=source.name,
+                source_class=source.source_class,
                 source_tier=source.source_tier,
+                source_tier_level=source.source_tier_level,
+                freshness_sla_hours=source.freshness_sla_hours,
+                license_mode=source.license_mode,
                 is_active=bool(source.is_active),
                 article_count=article_count,
                 event_count=len(events),

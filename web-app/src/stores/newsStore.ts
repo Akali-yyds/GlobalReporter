@@ -1,7 +1,7 @@
 // News store using Zustand
 import { create } from 'zustand';
 import { newsApi } from '../services/api';
-import { DEFAULT_RECENT_HOURS } from '../utils/timeUtils';
+import { NEWS_FILTER_LOOKBACK_HOURS } from '../utils/timeUtils';
 import type { NewsEvent, PaginatedResponse, SourceTier } from '../types/news';
 
 interface NewsState {
@@ -26,6 +26,7 @@ interface NewsState {
     tags_any?: string;
     tags_all?: string;
     source_tier?: SourceTier;
+    since_hours?: number;
   }) => Promise<void>;
   setSelectedEvent: (event: NewsEvent | null) => void;
   toggleTag: (tag: string) => string[];
@@ -53,21 +54,11 @@ export const useNewsStore = create<NewsState>((set, get) => ({
     try {
       const page = params.page ?? get().page;
       const pageSize = params.page_size ?? get().pageSize;
-      const selectedTags = get().selectedTags;
-      const selectedSourceTier = get().selectedSourceTier;
-      const tagParams = params.tags_any !== undefined
-        ? {}
-        : (selectedTags.length > 0 ? { tags_any: selectedTags.join(',') } : {});
-      const sourceTierParams = params.source_tier !== undefined
-        ? {}
-        : (selectedSourceTier ? { source_tier: selectedSourceTier } : {});
 
       const response = await newsApi.getHotNews({
         page,
         page_size: pageSize,
-        since_hours: DEFAULT_RECENT_HOURS,
-        ...tagParams,
-        ...sourceTierParams,
+        since_hours: params.since_hours ?? NEWS_FILTER_LOOKBACK_HOURS,
         ...params,
       });
 

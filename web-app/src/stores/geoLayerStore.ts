@@ -1,7 +1,7 @@
 // Geo layer store — manages global / country / admin1 drill-down state
 import { create } from 'zustand';
 import { hotspotsApi } from '../services/api';
-import { DEFAULT_RECENT_HOURS } from '../utils/timeUtils';
+import { hoursSinceBeijingMidnight } from '../utils/timeUtils';
 import type {
   CountryHotspotItem,
   CountryHotspotListResponse,
@@ -77,7 +77,7 @@ export const useGeoLayerStore = create<GeoLayerState>((set) => ({
   fetchCountryHotspots: async (scope) => {
     set({ isLoadingCountries: true, error: null });
     try {
-      const resp = await hotspotsApi.getCountryHotspots({ scope, limit: 100, since_hours: DEFAULT_RECENT_HOURS });
+      const resp = await hotspotsApi.getCountryHotspots({ scope, limit: 100, since_hours: hoursSinceBeijingMidnight() });
       const data = resp as unknown as CountryHotspotListResponse;
       const heatMap = new Map<string, number>();
       for (const c of data.countries) {
@@ -121,7 +121,7 @@ export const useGeoLayerStore = create<GeoLayerState>((set) => ({
           });
 
     // Fetch admin1 hotspots, city hotspots, and GeoJSON in parallel
-    const sh = DEFAULT_RECENT_HOURS;
+    const sh = hoursSinceBeijingMidnight();
     const [hotspotsResult, geoResult, cityResult] = await Promise.allSettled([
       hotspotsApi.getAdmin1Hotspots(cc, { since_hours: sh }),
       geoPromise,

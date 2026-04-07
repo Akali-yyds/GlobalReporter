@@ -5,11 +5,25 @@ import NewsDetailPanel from './components/NewsDetailPanel';
 import { useNewsStore } from './stores/newsStore';
 import { useGlobeStore } from './stores/globeStore';
 import { jobsApi, newsApi } from './services/api';
-import { DEFAULT_RECENT_HOURS } from './utils/timeUtils';
+import { hoursSinceBeijingMidnight, type NewsTimeRange } from './utils/timeUtils';
 import type { Hotspot, SourceTier } from './types/news';
 import './App.css';
 
 const POLL_MS = 45_000;
+
+function dedupeHotspotsByEventId(hotspots: Hotspot[]): Hotspot[] {
+  const unique = new Map<string, Hotspot>();
+
+  hotspots.forEach((hotspot, index) => {
+    const eventId = hotspot.event_id || `${hotspot.geo_key || 'geo'}-${index}`;
+    const existing = unique.get(eventId);
+    if (!existing || hotspot.heat_score > existing.heat_score) {
+      unique.set(eventId, hotspot);
+    }
+  });
+
+  return Array.from(unique.values());
+}
 
 function mapRegionHotspots(
   hotspots: Hotspot[],
@@ -17,7 +31,7 @@ function mapRegionHotspots(
   geoType: 'country' | 'region'
 ): Hotspot[] {
   if (!geoKey) return [];
-  return hotspots.map((hotspot) => ({
+  return dedupeHotspotsByEventId(hotspots).map((hotspot) => ({
     ...hotspot,
     geo_key: hotspot.geo_key || geoKey,
     geo_type: geoType,
@@ -44,6 +58,7 @@ function App() {
   const { hotspots, fetchHotspots } = useGlobeStore();
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [manualRefresh, setManualRefresh] = useState(false);
+  const [timeRange, setTimeRange] = useState<NewsTimeRange>('today');
   type RegionEntry = { name: string; hotspots: Hotspot[]; geoKey?: string };
   const [regionStack, setRegionStack] = useState<RegionEntry[]>([]);
   const regionPanel = regionStack.length > 0 ? regionStack[regionStack.length - 1] : null;
@@ -128,10 +143,10 @@ function App() {
           : [...prev, { name: label, hotspots: seededHotspots, geoKey }]
       );
       if (geoKey) {
-        newsApi.getRegionNews(geoKey, { page_size: 40, since_hours: DEFAULT_RECENT_HOURS })
+        newsApi.getRegionNews(geoKey, { page_size: 40, since_hours: hoursSinceBeijingMidnight() })
           .then((resp: any) => {
             const rawItems = Array.isArray(resp) ? resp : (resp?.items ?? []);
-            const items: Hotspot[] = rawItems.map((e: any) => ({
+            const items = dedupeHotspotsByEventId(rawItems.map((e: any) => ({
               event_id: e.id,
               title: e.title,
               summary: e.summary,
@@ -143,7 +158,7 @@ function App() {
               iso_a3: e.iso_a3 ?? null,
               article_count: e.article_count ?? 1,
               confidence: 1,
-            }));
+            })));
             if (items.length > 0) {
               setRegionStack((prev) =>
                 prev.map((entry) =>
@@ -159,10 +174,10 @@ function App() {
 
     setRegionStack([{ name: label, hotspots: seededHotspots, geoKey }]);
     if (geoKey) {
-      newsApi.getRegionNews(geoKey, { page_size: 40, since_hours: DEFAULT_RECENT_HOURS })
+      newsApi.getRegionNews(geoKey, { page_size: 40, since_hours: hoursSinceBeijingMidnight() })
         .then((resp: any) => {
           const rawItems = Array.isArray(resp) ? resp : (resp?.items ?? []);
-          const items: Hotspot[] = rawItems.map((e: any) => ({
+          const items = dedupeHotspotsByEventId(rawItems.map((e: any) => ({
             event_id: e.id,
             title: e.title,
             summary: e.summary,
@@ -174,7 +189,7 @@ function App() {
             iso_a3: e.iso_a3 ?? null,
             article_count: e.article_count ?? 1,
             confidence: 1,
-          }));
+          })));
           if (items.length > 0) {
             setRegionStack((prev) =>
               prev.map((entry) =>
@@ -190,6 +205,12 @@ function App() {
   const handleCountryBreadcrumbClick = useCallback(() => {
     setRegionStack((prev) => (prev.length > 1 ? [prev[0]] : prev));
   }, []);
+
+  const handleBackToGlobal = useCallback(() => {
+    setRegionStack([]);
+    setSelectedEvent(null);
+    setIsDetailOpen(false);
+  }, [setSelectedEvent]);
 
   const handleRegionHotspotClick = (eventId: string) => {
     setRegionStack([]);
@@ -212,24 +233,17 @@ function App() {
     }
   };
 
-  const handleTagToggle = useCallback(async (tag: string) => {
+  const handleTagToggle = useCallback((tag: string) => {
     toggleTag(tag);
-    await fetchHotEvents({ scope: 'all', page: 1 });
-  }, [fetchHotEvents, toggleTag]);
+  }, [toggleTag]);
 
-  const handleTagClear = useCallback(async () => {
+  const handleTagClear = useCallback(() => {
     clearTags();
-    await fetchHotEvents({ scope: 'all', page: 1 });
-  }, [clearTags, fetchHotEvents]);
+  }, [clearTags]);
 
-  const handleSourceTierChange = useCallback(async (tier: SourceTier | null) => {
+  const handleSourceTierChange = useCallback((tier: SourceTier | null) => {
     setSourceTier(tier);
-    await fetchHotEvents({
-      scope: 'all',
-      page: 1,
-      ...(tier ? { source_tier: tier } : {}),
-    });
-  }, [fetchHotEvents, setSourceTier]);
+  }, [setSourceTier]);
 
   const handleCloseDetail = () => {
     setIsDetailOpen(false);
@@ -261,8 +275,10 @@ function App() {
             events={events}
             total={total}
             selectedEventId={selectedEvent?.id}
+            timeRange={timeRange}
             selectedTags={selectedTags}
             selectedSourceTier={selectedSourceTier}
+            onTimeRangeChange={setTimeRange}
             onTagToggle={handleTagToggle}
             onTagClear={handleTagClear}
             onSourceTierChange={handleSourceTierChange}
@@ -275,6 +291,7 @@ function App() {
             hotspots={hotspots}
             onHotspotClick={handleHotspotClick}
             onAdmin1RegionClick={handleAdmin1RegionClick}
+            onBackToGlobal={handleBackToGlobal}
             regionBreadcrumb={regionBreadcrumb}
             onRegionBreadcrumbBack={regionStack.length > 1 ? handleRegionBack : undefined}
             onCountryBreadcrumbClick={regionStack.length > 1 ? handleCountryBreadcrumbClick : undefined}

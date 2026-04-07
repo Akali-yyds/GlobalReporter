@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import type { NewsEvent, Hotspot } from '../../types/news';
 import { newsApi } from '../../services/api';
 import './NewsDetailPanel.css';
@@ -35,6 +35,20 @@ const NewsDetailPanel = memo(({ event, isOpen, onClose, onBack, regionHotspots, 
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [favorited, setFavorited] = useState(false);
+  const uniqueRegionHotspots = useMemo(() => {
+    if (regionHotspots == null) return null;
+
+    const unique = new Map<string, Hotspot>();
+    regionHotspots.forEach((hotspot, index) => {
+      const key = hotspot.event_id || `${hotspot.geo_key || 'geo'}-${index}`;
+      const existing = unique.get(key);
+      if (!existing || hotspot.heat_score > existing.heat_score) {
+        unique.set(key, hotspot);
+      }
+    });
+
+    return Array.from(unique.values());
+  }, [regionHotspots]);
 
   useEffect(() => {
     if (!isOpen || !event) {
@@ -69,7 +83,7 @@ const NewsDetailPanel = memo(({ event, isOpen, onClose, onBack, regionHotspots, 
   if (!isOpen) return null;
 
   // Region list mode
-  if (regionHotspots != null) {
+  if (uniqueRegionHotspots != null) {
     return (
       <div className="news-detail-panel">
         <div className="detail-header">
@@ -90,15 +104,15 @@ const NewsDetailPanel = memo(({ event, isOpen, onClose, onBack, regionHotspots, 
           </div>
         </div>
         <div className="detail-content">
-          {regionHotspots.length === 0 ? (
+          {uniqueRegionHotspots.length === 0 ? (
             <p className="detail-loading">该地区暂无热点新闻</p>
           ) : (
             <>
-            <div className="region-news-count">{regionHotspots.length} 条相关新闻</div>
+            <div className="region-news-count">{uniqueRegionHotspots.length} 条相关新闻</div>
             <ul className="region-news-list">
-              {regionHotspots.map((h) => (
+              {uniqueRegionHotspots.map((h, index) => (
                 <li
-                  key={h.event_id}
+                  key={h.event_id || `${h.geo_key || 'geo'}-${index}`}
                   className="region-news-item"
                   onClick={() => onRegionHotspotClick?.(h.event_id)}
                   role="button"

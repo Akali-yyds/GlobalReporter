@@ -72,10 +72,20 @@ class BBCSpider(BaseNewsSpider):
             news_item["source_name"] = self.source_name
             news_item["source_code"] = self.source_code
             news_item["source_url"] = self.source_url
+            news_item["source_class"] = "news"
+            news_item["source_tier"] = "authoritative"
+            news_item["source_tier_level"] = 2
+            news_item["freshness_sla_hours"] = 24
+            news_item["license_mode"] = "publisher_public"
             news_item["crawled_at"] = datetime.now().isoformat()
             news_item["language"] = self.language
             news_item["country"] = self.country
             news_item["category"] = self.category
+            news_item["canonical_url"] = link
+            news_item["source_metadata"] = {
+                "fetch_via": "official_rss",
+                "feed_url": self.API_URL,
+            }
             news_item["heat_score"] = max(1, 50 - idx)
             news_item["hash"] = self.compute_hash(title, self.source_code, link)
 

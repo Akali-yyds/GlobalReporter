@@ -1,7 +1,7 @@
 // Globe store using Zustand
 import { create } from 'zustand';
 import { globeApi } from '../services/api';
-import { DEFAULT_RECENT_HOURS } from '../utils/timeUtils';
+import { hoursSinceBeijingMidnight } from '../utils/timeUtils';
 import type { Hotspot, HotspotListResponse } from '../types/news';
 
 interface GlobeState {
@@ -47,7 +47,7 @@ export const useGlobeStore = create<GlobeState>((set, get) => ({
 
       const response = await globeApi.getHotspots({
         scope: nextScope,
-        since_hours: DEFAULT_RECENT_HOURS,
+        since_hours: hoursSinceBeijingMidnight(),
         ...params,
       });
 

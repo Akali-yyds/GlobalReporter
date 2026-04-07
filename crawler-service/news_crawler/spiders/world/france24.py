@@ -10,12 +10,31 @@ from scrapy import Request
 
 from news_crawler.items import NewsArticle
 from news_crawler.spiders.base import BaseNewsSpider
+from news_crawler.utils.feed_control import build_feed_request_meta, record_feed_fetch
 
 logger = logging.getLogger(__name__)
 
-RSS_URLS = [
-    ("https://www.france24.com/en/rss", "en", "GB"),
-    ("https://www.france24.com/fr/rss", "fr", "FR"),
+FEED_CONFIGS = [
+    {
+        "url": "https://www.france24.com/en/rss",
+        "name": "english",
+        "code": "english",
+        "priority": 1,
+        "freshness_sla_hours": 24,
+        "rollout_state": "poc",
+        "language": "en",
+        "country": "GB",
+    },
+    {
+        "url": "https://www.france24.com/fr/rss",
+        "name": "french",
+        "code": "french",
+        "priority": 2,
+        "freshness_sla_hours": 24,
+        "rollout_state": "poc",
+        "language": "fr",
+        "country": "FR",
+    },
 ]
 
 
@@ -39,12 +58,13 @@ class France24Spider(BaseNewsSpider):
     }
 
     def start_requests(self) -> Iterator[Request]:
-        for url, lang, _ in RSS_URLS:
+        for feed in self.get_controlled_feeds(FEED_CONFIGS):
             yield Request(
-                url=url,
+                url=feed["url"],
                 callback=self.parse_rss,
+                errback=self.handle_feed_error,
                 dont_filter=True,
-                meta={"lang": lang},
+                meta={**build_feed_request_meta(feed), "lang": feed.get("language", "en")},
                 headers={
                     "User-Agent": (
                         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -62,6 +82,16 @@ class France24Spider(BaseNewsSpider):
         if not items:
             # Try alternate paths used by france24
             items = response.xpath("//entry")
+        feed = self.get_response_feed(response, FEED_CONFIGS)
+        record_feed_fetch(
+            self,
+            feed_code=feed["code"],
+            feed_name=feed["name"],
+            feed_url=response.url,
+            http_status=response.status,
+            success=bool(items),
+            error=None if items else "No RSS items found",
+        )
         if not items:
             logger.warning(
                 "France24: no items from %s. Status=%s body[:500]=%s",
@@ -70,6 +100,12 @@ class France24Spider(BaseNewsSpider):
                 response.text[:500],
             )
             return
+
+        feed_name = response.meta.get("feed_name") or feed["name"]
+        feed_priority = int(response.meta.get("feed_priority") or feed["priority"])
+        feed_sla = int(response.meta.get("feed_freshness_sla_hours") or feed["freshness_sla_hours"])
+        feed_rollout_state = response.meta.get("feed_rollout_state") or feed["rollout_state"]
+        feed_profile_id = response.meta.get("feed_profile_id") or feed.get("id")
 
         for it in items:
             if len(self.crawled_items) >= self.max_items:
@@ -99,11 +135,27 @@ class France24Spider(BaseNewsSpider):
             item["source_name"] = self.source_name
             item["source_code"] = self.source_code
             item["source_url"] = self.source_url
+            item["source_class"] = "news"
+            item["source_tier"] = "authoritative"
+            item["source_tier_level"] = 2
+            item["freshness_sla_hours"] = feed_sla
+            item["license_mode"] = "publisher_public"
             item["published_at"] = pub or None
             item["crawled_at"] = datetime.now().isoformat()
             item["language"] = lang
             item["country"] = self.country
             item["category"] = cat or self.category
+            item["canonical_url"] = link
+            item["source_metadata"] = {
+                "fetch_via": "official_rss",
+                "feed_url": response.url,
+                "feed_code": feed["code"],
+                "feed_name": feed_name,
+                "feed_priority": feed_priority,
+                "feed_profile_id": feed_profile_id,
+                "feed_rollout_state": feed_rollout_state,
+                "rollout": "poc_only",
+            }
             item["heat_score"] = max(1, self.max_items - len(self.crawled_items))
             item["hash"] = self.compute_hash(title, self.source_code, link)
             self.crawled_items.append(item)

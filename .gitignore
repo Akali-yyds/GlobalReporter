@@ -12,3 +12,6 @@ quality_result*.json
 
 .DS_Store
 Thumbs.db
+
+# raw geo dictionaries
+crawler-service/news_crawler/utils/geo_dictionaries/raw/

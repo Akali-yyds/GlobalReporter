@@ -35,6 +35,32 @@ def test_signal_classifier_extracts_ai_and_chip_tags():
     assert not result.should_drop
 
 
+def test_signal_classifier_does_not_tag_iran_story_as_ai_from_substrings():
+    result = classify_news_signal(
+        title="Japanese national believed to be NHK journalist detained in Iran released on bail",
+        summary="Officials said the reporter was released after the detention case moved forward.",
+        content=None,
+        source_code="abc_news",
+        base_category="news",
+    )
+
+    assert "ai" not in result.tags
+    assert "science" not in result.tags
+
+
+def test_signal_classifier_does_not_match_war_inside_warns():
+    result = classify_news_signal(
+        title="Trump warns Iran it could be destroyed in one night as deadline nears",
+        summary="The deadline is approaching as diplomatic efforts continue.",
+        content=None,
+        source_code="euronews",
+        base_category="news",
+    )
+
+    assert "conflict" not in result.tags
+    assert result.category == "news"
+
+
 def test_signal_classifier_marks_low_value_entertainment():
     result = classify_news_signal(
         title="Popular TV drama announces new cast ahead of season launch",

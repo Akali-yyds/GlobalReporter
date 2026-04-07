@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 import re
 from typing import Iterable
 
@@ -90,6 +91,15 @@ def _prepare_text(*parts: str | None) -> tuple[str, str]:
     return raw, lowered
 
 
+@lru_cache(maxsize=512)
+def _ascii_keyword_regex(keyword: str) -> re.Pattern[str]:
+    normalized = keyword.strip().lower()
+    escaped = re.escape(normalized).replace(r"\ ", r"\s+")
+    prefix = r"(?<![a-z0-9])" if normalized[:1].isalnum() else ""
+    suffix = r"(?![a-z0-9])" if normalized[-1:].isalnum() else ""
+    return re.compile(f"{prefix}{escaped}{suffix}", re.IGNORECASE)
+
+
 def _matches_keywords(raw_text: str, lowered_text: str, keywords: Iterable[str]) -> list[str]:
     matches: list[str] = []
     for keyword in keywords:
@@ -97,7 +107,7 @@ def _matches_keywords(raw_text: str, lowered_text: str, keywords: Iterable[str])
         if not normalized:
             continue
         if normalized.isascii():
-            if normalized.lower() in lowered_text:
+            if _ascii_keyword_regex(normalized).search(lowered_text):
                 matches.append(normalized)
         else:
             if normalized in raw_text:

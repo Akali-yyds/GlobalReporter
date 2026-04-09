@@ -30,23 +30,33 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _startup_echo(message: str) -> None:
+    logger.info(message)
+    print(message, flush=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     # Startup
-    logger.info("Starting GlobalReporter API Service...")
+    _startup_echo("Starting GlobalReporter API Service...")
+    _startup_echo("Startup stage: init_db begin")
     init_db()
-    logger.info("Database initialized.")
+    _startup_echo("Startup stage: init_db done")
+    _startup_echo("Startup stage: ensure_video_seed_data begin")
     db = SessionLocal()
     try:
         ensure_video_seed_data(db)
     finally:
         db.close()
+    _startup_echo("Startup stage: ensure_video_seed_data done")
+    _startup_echo("Startup stage: background_crawler begin")
     start_background_crawler()
+    _startup_echo("Startup stage: background_crawler requested")
     yield
     # Shutdown
     stop_background_crawler()
-    logger.info("Shutting down GlobalReporter API Service...")
+    _startup_echo("Shutting down GlobalReporter API Service...")
 
 
 # Create FastAPI application

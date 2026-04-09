@@ -59,6 +59,20 @@ _BACKGROUND_ROTATION: List[str] = [
 ]
 _bg_spider_cycle = itertools.cycle(_BACKGROUND_ROTATION)
 
+
+def _dedupe_keep_order(names: List[str]) -> List[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for name in names:
+        if name in seen:
+            continue
+        seen.add(name)
+        ordered.append(name)
+    return ordered
+
+
+BACKGROUND_SWEEP_SPIDERS: List[str] = _dedupe_keep_order(CHINA_SPIDERS + WORLD_SPIDERS)
+
 _runner_lock = threading.Lock()
 _video_runner_lock = threading.Lock()
 _bg_thread: Optional[threading.Thread] = None
@@ -239,6 +253,7 @@ def _run_scrapy_sync(spider_name: str, max_items: int = 50, feed_scope: str = "d
     job_label = spider_name if feed_scope == "default" else f"{spider_name}:{feed_scope}"
     job_id = _create_crawl_job(spider_name, job_spider_name=job_label)
     logger.info("Running crawler: %s (cwd=%s)", " ".join(cmd), cwd)
+    print(f"[CrawlerRun] start spider={job_label} max_items={mi}", flush=True)
 
     stderr_tail: deque[str] = deque(maxlen=800)
     stdout_tail: deque[str] = deque(maxlen=400)
@@ -256,12 +271,30 @@ def _run_scrapy_sync(spider_name: str, max_items: int = 50, feed_scope: str = "d
             else:
                 stdout_tail.append(line)
 
-            if "Processed item:" in line or "[Ingest]" in line or "item_scraped_count" in line:
+            progress_markers = (
+                "Processed item:",
+                "[Ingest]",
+                "[LiveItem]",
+                "item_scraped_count",
+                "Spider opened",
+                "Closing spider",
+                "Spider closed",
+                "Dumping Scrapy stats",
+                "Crawled ",
+                "scraped ",
+                "Enabled item pipelines",
+                "response_status_count/",
+                "finish_reason",
+            )
+
+            if any(marker in line for marker in progress_markers):
                 logger.info("%s %s", prefix, line)
+                print(f"{prefix} {line}", flush=True)
             elif is_error:
                 logger.info("%s %s", prefix, line)
+                print(f"{prefix} {line}", flush=True)
             else:
-                logger.debug("%s %s", prefix, line)
+                logger.info("%s %s", prefix, line)
         stream.close()
 
     try:
@@ -306,15 +339,16 @@ def _run_scrapy_sync(spider_name: str, max_items: int = 50, feed_scope: str = "d
     # Extract key Scrapy stats from stderr
     m_scraped = re.search(r"'item_scraped_count':\s*(\d+)", err)
     m_dropped = re.search(r"'item_dropped_count':\s*(\d+)", err)
-    scraped = int(m_scraped.group(1)) if m_scraped else None
+    scraped = int(m_scraped.group(1)) if m_scraped else 0
     dropped = int(m_dropped.group(1)) if m_dropped else 0
-    processed = max((scraped or 0) - dropped, 0)
+    crawled_total = scraped + dropped
+    processed = scraped
 
     if proc.returncode != 0:
         _update_crawl_job(
             job_id,
             status="failed",
-            items_crawled=scraped or 0,
+            items_crawled=crawled_total,
             items_processed=processed,
             error_message=err[-2000:] if err else f"Spider exited with rc={proc.returncode}",
         )
@@ -325,21 +359,27 @@ def _run_scrapy_sync(spider_name: str, max_items: int = 50, feed_scope: str = "d
             elapsed,
             err[-4000:] if err else "(empty)",
         )
+        print(f"[CrawlerRun] failed spider={job_label} rc={proc.returncode} elapsed={elapsed:.1f}s", flush=True)
     else:
         _update_crawl_job(
             job_id,
             status="completed",
-            items_crawled=scraped or 0,
+            items_crawled=crawled_total,
             items_processed=processed,
         )
-        if scraped is not None:
+        if crawled_total:
             logger.info(
-                "Crawler OK spider=%s scraped=%s dropped=%s elapsed=%.1fs",
-                spider_name, scraped, dropped, elapsed,
+                "Crawler OK spider=%s crawled=%s processed=%s dropped=%s elapsed=%.1fs",
+                spider_name, crawled_total, processed, dropped, elapsed,
+            )
+            print(
+                f"[CrawlerRun] done spider={job_label} crawled={crawled_total} processed={processed} dropped={dropped} elapsed={elapsed:.1f}s",
+                flush=True,
             )
         else:
             logger.info("Crawler OK spider=%s elapsed=%.1fs", spider_name, elapsed)
-        if scraped == 0:
+            print(f"[CrawlerRun] done spider={job_label} crawled=0 processed=0 dropped=0 elapsed={elapsed:.1f}s", flush=True)
+        if crawled_total == 0:
             logger.warning(
                 "Spider %s returned 0 items (%.1fs). STDERR/STDOUT tail:\n%s\n%s",
                 spider_name,
@@ -347,6 +387,7 @@ def _run_scrapy_sync(spider_name: str, max_items: int = 50, feed_scope: str = "d
                 err[-2000:] if err else "(empty)",
                 out[-1200:] if out else "",
             )
+            print(f"[CrawlerRun] zero-items spider={job_label}", flush=True)
 
     return proc.returncode
 
@@ -436,28 +477,48 @@ def _background_loop():
 
     interval = max(60, int(settings.CRAWLER_INTERVAL_SECONDS))
     spider = settings.CRAWLER_SPIDER
+    sweep_spiders = list(BACKGROUND_SWEEP_SPIDERS)
 
     logger.info(
-        "Crawler background loop started: spider=%s interval=%ss",
+        "Crawler background loop started: spider=%s interval=%ss sweep_total=%s",
         spider,
         interval,
+        len(sweep_spiders),
+    )
+    print(
+        f"[CrawlerLoop] started interval={interval}s initial_spider={spider} sweep_total={len(sweep_spiders)}",
+        flush=True,
     )
 
     # Initial run shortly after API startup
+    logger.info("Background loop warmup: first tick in 5 seconds")
+    print("[CrawlerLoop] warmup 5s before first tick", flush=True)
     time.sleep(5)
     while not _stop_flag.is_set():
-        if _runner_lock.acquire(blocking=False):
-            try:
-                next_spider = next(_bg_spider_cycle)
-                logger.info("Background crawl tick: spider=%s", next_spider)
-                _run_scrapy_with_retry(next_spider, max_items=50)
-                if _has_feed_rollout(next_spider, "canary") and _canary_due(next_spider):
-                    logger.info("Background canary tick: spider=%s", next_spider)
-                    _run_scrapy_with_retry(next_spider, max_items=20, feed_scope="canary")
-            finally:
-                _runner_lock.release()
-        else:
-            logger.debug("Skipping scheduled crawl: manual run in progress")
+        print(f"[CrawlerSweep] start total={len(sweep_spiders)}", flush=True)
+        logger.info("Background crawl sweep started: total=%s", len(sweep_spiders))
+
+        for index, next_spider in enumerate(sweep_spiders, start=1):
+            if _stop_flag.is_set():
+                break
+
+            if _runner_lock.acquire(blocking=False):
+                try:
+                    logger.info("Background crawl tick: spider=%s (%s/%s)", next_spider, index, len(sweep_spiders))
+                    print(f"[CrawlerTick] spider={next_spider} index={index}/{len(sweep_spiders)} max_items=50", flush=True)
+                    _run_scrapy_with_retry(next_spider, max_items=50)
+                    if _has_feed_rollout(next_spider, "canary") and _canary_due(next_spider):
+                        logger.info("Background canary tick: spider=%s (%s/%s)", next_spider, index, len(sweep_spiders))
+                        print(f"[CrawlerTick] spider={next_spider} index={index}/{len(sweep_spiders)} feed_scope=canary max_items=20", flush=True)
+                        _run_scrapy_with_retry(next_spider, max_items=20, feed_scope="canary")
+                finally:
+                    _runner_lock.release()
+            else:
+                logger.debug("Skipping scheduled spider=%s: manual run in progress", next_spider)
+                print(f"[CrawlerTick] skipped spider={next_spider} reason=manual-run-in-progress", flush=True)
+
+        logger.info("Background crawl sweep completed")
+        print(f"[CrawlerSweep] done total={len(sweep_spiders)}", flush=True)
 
         if _video_runner_lock.acquire(blocking=False):
             try:
@@ -473,13 +534,16 @@ def _background_loop():
                             ok_count,
                             len(results) - ok_count,
                         )
+                        print(f"[VideoProbe] total={len(results)} ok={ok_count} failed={len(results) - ok_count}", flush=True)
                 finally:
                     db.close()
             except Exception:
                 logger.exception("Video probe tick failed")
+                print("[VideoProbe] failed", flush=True)
             finally:
                 _video_runner_lock.release()
 
+        print(f"[CrawlerLoop] sleeping {interval}s before next sweep", flush=True)
         if _stop_flag.wait(timeout=interval):
             break
 
@@ -501,6 +565,8 @@ def start_background_crawler() -> None:
     _stop_flag.clear()
     _bg_thread = threading.Thread(target=_background_loop, name="crawler-bg", daemon=True)
     _bg_thread.start()
+    logger.info("Background crawler thread created: name=%s ident=%s", _bg_thread.name, _bg_thread.ident)
+    print(f"[CrawlerLoop] thread created name={_bg_thread.name}", flush=True)
 
 
 def stop_background_crawler() -> None:

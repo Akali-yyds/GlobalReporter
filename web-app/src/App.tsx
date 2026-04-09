@@ -11,7 +11,10 @@ import type { Hotspot, SourceTier } from './types/news';
 import type { VideoRolloutState, VideoType } from './types/video';
 import './App.css';
 
-const POLL_MS = 45_000;
+const ACTIVE_REFRESH_MS = 5_000;
+const ACTIVE_JOB_CHECK_MS = 8_000;
+const IDLE_JOB_CHECK_MS = 60_000;
+const JOB_ACTIVE_WINDOW_MS = 25_000;
 
 function dedupeHotspotsByEventId(hotspots: Hotspot[]): Hotspot[] {
   const unique = new Map<string, Hotspot>();
@@ -43,6 +46,30 @@ function mapRegionHotspots(
   }));
 }
 
+function inferRegionGeoType(geoKey: string | undefined): 'country' | 'region' {
+  if (!geoKey) return 'region';
+  return /^[A-Z]{2}$/.test(geoKey) ? 'country' : 'region';
+}
+
+function parseJobTime(value?: string | null): number | null {
+  if (!value) return null;
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function isCrawlerActive(latestJob: any): boolean {
+  const job = latestJob?.job;
+  if (!job) return false;
+  if (job.status === 'running') return true;
+
+  const now = Date.now();
+  const startedAt = parseJobTime(job.started_at);
+  const finishedAt = parseJobTime(job.finished_at);
+  const latestTs = Math.max(startedAt ?? 0, finishedAt ?? 0);
+  if (!latestTs) return false;
+  return now - latestTs <= JOB_ACTIVE_WINDOW_MS;
+}
+
 function App() {
   const {
     selectedEvent,
@@ -72,22 +99,92 @@ function App() {
   const regionPanel = regionStack.length > 0 ? regionStack[regionStack.length - 1] : null;
   const regionBreadcrumb = regionStack.length > 1 ? regionStack.slice(1).map((r) => r.name) : [];
   const crawlPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const backgroundPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wasCrawlerActiveRef = useRef(false);
+
+  const refreshRegionPanel = useCallback(async (geoKey: string) => {
+    const resp: any = await newsApi.getRegionNews(geoKey, {
+      page_size: 40,
+      since_hours: hoursSinceBeijingMidnight(),
+    });
+    const rawItems = Array.isArray(resp) ? resp : (resp?.items ?? []);
+    const total = typeof resp?.total === 'number' ? resp.total : rawItems.length;
+    const items = dedupeHotspotsByEventId(rawItems.map((e: any) => ({
+      event_id: e.id,
+      title: e.title,
+      summary: e.summary,
+      heat_score: e.heat_score,
+      geo_key: geoKey,
+      geo_type: inferRegionGeoType(geoKey),
+      display_type: 'polygon' as const,
+      center: undefined,
+      iso_a3: e.iso_a3 ?? null,
+      article_count: e.article_count ?? 1,
+      confidence: 1,
+    })));
+
+    setRegionStack((prev) =>
+      prev.map((entry) =>
+        entry.geoKey === geoKey ? { ...entry, hotspots: items, total } : entry
+      )
+    );
+  }, []);
 
   const refreshData = useCallback(async () => {
-    await fetchHotEvents({ scope: 'all', page: 1 });
-    await fetchHotspots({ scope: 'all' });
-    await refreshActiveLayer();
-  }, [fetchHotEvents, fetchHotspots, refreshActiveLayer]);
+    await Promise.all([
+      fetchHotEvents({ scope: 'all', page: 1 }),
+      fetchHotspots({ scope: 'all' }),
+      refreshActiveLayer(),
+      regionPanel?.geoKey ? refreshRegionPanel(regionPanel.geoKey) : Promise.resolve(),
+    ]);
+  }, [fetchHotEvents, fetchHotspots, refreshActiveLayer, refreshRegionPanel, regionPanel?.geoKey]);
 
   useEffect(() => {
     void refreshData();
   }, [refreshData]);
 
   useEffect(() => {
-    const id = window.setInterval(() => {
-      void refreshData();
-    }, POLL_MS);
-    return () => window.clearInterval(id);
+    let cancelled = false;
+
+    const schedule = (delay: number) => {
+      if (cancelled) return;
+      if (backgroundPollRef.current != null) {
+        window.clearTimeout(backgroundPollRef.current);
+      }
+      backgroundPollRef.current = window.setTimeout(() => {
+        void tick();
+      }, delay);
+    };
+
+    const tick = async () => {
+      if (cancelled) return;
+      try {
+        const latestJob: any = await jobsApi.getLatestJob();
+        const active = isCrawlerActive(latestJob);
+
+        if (active) {
+          await refreshData();
+        } else if (wasCrawlerActiveRef.current) {
+          // Run one final sync after a sweep finishes so counts settle on the latest data.
+          await refreshData();
+        }
+
+        wasCrawlerActiveRef.current = active;
+        schedule(active ? ACTIVE_JOB_CHECK_MS : IDLE_JOB_CHECK_MS);
+      } catch {
+        schedule(IDLE_JOB_CHECK_MS);
+      }
+    };
+
+    void tick();
+
+    return () => {
+      cancelled = true;
+      if (backgroundPollRef.current != null) {
+        window.clearTimeout(backgroundPollRef.current);
+        backgroundPollRef.current = null;
+      }
+    };
   }, [refreshData]);
 
   const handleManualCrawl = async () => {
@@ -107,7 +204,7 @@ function App() {
     } finally {
       setManualRefresh(false);
     }
-    const pollMs = 5000;
+    const pollMs = ACTIVE_REFRESH_MS;
     const maxMs = 180000;
     crawlPollRef.current = window.setInterval(() => {
       void refreshData();
@@ -169,13 +266,11 @@ function App() {
               article_count: e.article_count ?? 1,
               confidence: 1,
             })));
-            if (items.length > 0) {
-              setRegionStack((prev) =>
-                prev.map((entry) =>
-                  entry.geoKey === geoKey ? { ...entry, hotspots: items, total } : entry
-                )
-              );
-            }
+            setRegionStack((prev) =>
+              prev.map((entry) =>
+                entry.geoKey === geoKey ? { ...entry, hotspots: items, total } : entry
+              )
+            );
           })
           .catch(() => {});
       }
@@ -201,13 +296,11 @@ function App() {
             article_count: e.article_count ?? 1,
             confidence: 1,
           })));
-          if (items.length > 0) {
-            setRegionStack((prev) =>
-              prev.map((entry) =>
-                entry.geoKey === geoKey ? { ...entry, hotspots: items, total } : entry
-              )
-            );
-          }
+          setRegionStack((prev) =>
+            prev.map((entry) =>
+              entry.geoKey === geoKey ? { ...entry, hotspots: items, total } : entry
+            )
+          );
         })
         .catch(() => {});
     }

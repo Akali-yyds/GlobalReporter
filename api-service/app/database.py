@@ -67,24 +67,38 @@ def init_db() -> None:
     This is useful for development and testing.
     """
     from app.models import Base
+    logger.info("init_db: inspecting database schema")
     inspector = inspect(engine)
     table_names = set(inspector.get_table_names())
     managed_tables = set(Base.metadata.tables.keys())
     has_user_tables = bool(table_names & managed_tables)
     is_sqlite = settings.DATABASE_URL.startswith("sqlite")
+    logger.info(
+        "init_db: database inspected is_sqlite=%s has_user_tables=%s table_count=%s managed_table_count=%s",
+        is_sqlite,
+        has_user_tables,
+        len(table_names),
+        len(managed_tables),
+    )
 
     if is_sqlite:
+        logger.info("init_db: sqlite create_all begin")
         Base.metadata.create_all(bind=engine)
+        logger.info("init_db: sqlite create_all done")
         return
 
     if has_user_tables:
+        logger.info("init_db: existing schema detected, running alembic upgrade")
         _upgrade_existing_schema()
     else:
+        logger.info("init_db: empty schema detected, running create_all + stamp")
         Base.metadata.create_all(bind=engine)
         _stamp_schema_head()
 
     # Keep create_all as a final safety net for unmanaged local environments.
+    logger.info("init_db: final create_all safety pass begin")
     Base.metadata.create_all(bind=engine)
+    logger.info("init_db: final create_all safety pass done")
 
 
 def drop_db() -> None:

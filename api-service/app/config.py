@@ -47,7 +47,7 @@ class Settings(BaseSettings):
 
     # Background crawler (runs Scrapy in crawler-service via subprocess)
     CRAWLER_ENABLED: bool = True
-    CRAWLER_INTERVAL_SECONDS: int = 300
+    CRAWLER_INTERVAL_SECONDS: int = 3600
     CRAWLER_SPIDER: str = "bbc"
     API_BASE_URL: str = "http://127.0.0.1:8000"
 

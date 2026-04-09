@@ -1,7 +1,12 @@
 """
-Tencent News (腾讯新闻) Spider — multi-strategy.
-Tries the hot ranking API, then falls back to HTML page parsing.
+Tencent News spider.
+
+Uses the primary hot ranking API first, only falling back to secondary sources
+when the first endpoint does not provide enough unique items. This avoids the
+previous pattern where all endpoints were hit up-front and then mostly deduped
+in the pipeline.
 """
+import json
 import logging
 from datetime import datetime
 from typing import Iterator
@@ -15,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 
 class TencentSpider(BaseNewsSpider):
-
     name = "tencent"
     source_name = "腾讯新闻"
     source_code = "tencent"
@@ -24,77 +28,87 @@ class TencentSpider(BaseNewsSpider):
     language = "zh"
     category = "news"
 
-    # Primary: hot ranking list JSON API
     HOT_API = "https://r.inews.qq.com/gw/event/hot_ranking_list?page_size=20&ptr=0"
-    # Fallback 1: older hot ranking API
     HOT_API_V2 = "https://i.news.qq.com/gw/event/pc_hot_ranking_list?offset=0&page_size=20&rank_type=1"
-    # Fallback 2: hot news page
     HOT_PAGE = "https://news.qq.com/hotnews/"
 
     def start_requests(self) -> Iterator[Request]:
-        headers = {
-            "Referer": "https://news.qq.com/",
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/122.0.0.0 Safari/537.36"
-            ),
-            "Accept": "application/json, text/plain, */*",
-            "Accept-Language": "zh-CN,zh;q=0.9",
-        }
-        yield Request(url=self.HOT_API, callback=self.parse_api,
-                      headers=headers, dont_filter=True)
-        yield Request(url=self.HOT_API_V2, callback=self.parse_api,
-                      headers=headers, dont_filter=True)
-        yield Request(url=self.HOT_PAGE, callback=self.parse_html,
-                      headers=headers, dont_filter=True)
+        self._seen_urls: set[str] = set()
+        headers = self._headers(accept="application/json, text/plain, */*")
+        yield Request(
+            url=self.HOT_API,
+            callback=self.parse_primary_api,
+            headers=headers,
+            dont_filter=True,
+        )
 
-    def parse_api(self, response, **kwargs) -> Iterator[NewsArticle]:
-        """Parse hot ranking JSON API."""
+    def parse_primary_api(self, response, **kwargs) -> Iterator[NewsArticle]:
+        emitted = yield from self._parse_api_items(response)
+        if len(self._seen_urls) < self.max_items:
+            yield Request(
+                url=self.HOT_API_V2,
+                callback=self.parse_secondary_api,
+                headers=self._headers(accept="application/json, text/plain, */*"),
+                dont_filter=True,
+            )
+        elif emitted == 0:
+            logger.warning("Tencent primary API produced 0 items from %s", response.url)
+
+    def parse_secondary_api(self, response, **kwargs) -> Iterator[NewsArticle]:
+        yield from self._parse_api_items(response)
+        if len(self._seen_urls) < self.max_items:
+            yield Request(
+                url=self.HOT_PAGE,
+                callback=self.parse_html,
+                headers=self._headers(accept="text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
+                dont_filter=True,
+            )
+
+    def _parse_api_items(self, response) -> Iterator[NewsArticle]:
         text = response.text.strip()
-        # Strip JSONP wrapper if present
         if text.startswith("(") and text.endswith(")"):
             text = text[1:-1]
 
         try:
-            import json
             data = json.loads(text)
-        except Exception as e:
-            logger.warning("Tencent API JSON parse error from %s: %s", response.url, e)
+        except Exception as exc:
+            logger.warning("Tencent API JSON parse error from %s: %s", response.url, exc)
             return
 
-        # Try multiple possible data key paths
         items = (
-            data.get("idlist", [{}])[0].get("newslist") if data.get("idlist")
+            data.get("idlist", [{}])[0].get("newslist")
+            if data.get("idlist")
             else data.get("data", {}).get("list")
             or data.get("data")
             or []
         )
         if not items:
-            logger.warning("Tencent API: no items in response from %s. keys=%s",
-                           response.url, list(data.keys())[:10])
+            logger.warning(
+                "Tencent API: no items in response from %s. keys=%s",
+                response.url,
+                list(data.keys())[:10],
+            )
             return
 
-        count = 0
-        seen: set[str] = set()
+        emitted = 0
         for row in items:
-            if count >= self.max_items:
+            if len(self.crawled_items) >= self.max_items:
                 break
+
             title = (row.get("title") or "").strip()
             link = (row.get("url") or row.get("article_url") or "").strip()
-            if not title or not link:
+            if not title or not link or link in self._seen_urls:
                 continue
-            if link in seen:
-                continue
-            seen.add(link)
-            count += 1
 
+            self._seen_urls.add(link)
+            emitted += 1
             item = NewsArticle()
             item["title"] = self.clean_text(title)
             item["summary"] = self.clean_text(
                 row.get("intro") or row.get("desc") or row.get("abstract") or ""
             )
             item["url"] = link
+            item["canonical_url"] = link
             item["source_name"] = self.source_name
             item["source_code"] = self.source_code
             item["source_url"] = self.source_url
@@ -108,46 +122,49 @@ class TencentSpider(BaseNewsSpider):
             item["heat_score"] = int(
                 row.get("hotValue") or row.get("heat") or row.get("hot_score") or 0
             )
+            item["source_metadata"] = {
+                "fetch_via": "hot_api",
+                "endpoint": response.url,
+            }
             item["hash"] = self.compute_hash(title, self.source_code, link)
             self.crawled_items.append(item)
             yield item
 
-        if count == 0:
-            logger.warning("Tencent API parsed 0 items from %s. Body[:400]: %s",
-                           response.url, response.text[:400])
+        if emitted == 0:
+            logger.warning(
+                "Tencent API parsed 0 unique items from %s. Body[:400]: %s",
+                response.url,
+                response.text[:400],
+            )
 
     def parse_html(self, response, **kwargs) -> Iterator[NewsArticle]:
-        """Fallback: extract from the hot news HTML page."""
         count = 0
-        seen: set[str] = set()
-
-        # <a href="..."> inside news item containers
-        raw_links = response.css(
-            'div.hot-list a[href*="qq.com"], '
-            'a[href*="/hotnews/"], '
-            'a[href*="news.qq.com"]'
-        ).xpath("@href").getall()
-
-        titles = response.css(
-            'div.hot-list a[href*="qq.com"]::text, '
-            'a[href*="/hotnews/"]::text, '
-            'h3 a::text, h2 a::text'
-        ).getall()
-
-        for raw_url in raw_links:
-            if count >= self.max_items:
+        for link_sel in response.css("a[href]"):
+            if len(self.crawled_items) >= self.max_items:
                 break
-            url = raw_url.strip()
-            if not url or url in seen or "qq.com" not in url:
+
+            raw_url = (link_sel.attrib.get("href") or "").strip()
+            if not raw_url:
                 continue
-            if not url.startswith("http"):
-                url = "https://news.qq.com" + url
-            seen.add(url)
+            url = response.urljoin(raw_url)
+            if (
+                not url.startswith("https://")
+                or "qq.com" not in url
+                or url in self._seen_urls
+            ):
+                continue
+
+            title = self.clean_text(link_sel.xpath("normalize-space(string())").get())
+            if not title or len(title) < 8:
+                continue
+
+            self._seen_urls.add(url)
             count += 1
 
             item = NewsArticle()
-            item["title"] = None
+            item["title"] = title
             item["url"] = url
+            item["canonical_url"] = url
             item["source_name"] = self.source_name
             item["source_code"] = self.source_code
             item["source_url"] = self.source_url
@@ -155,16 +172,29 @@ class TencentSpider(BaseNewsSpider):
             item["language"] = self.language
             item["country"] = self.country
             item["category"] = self.category
-            item["hash"] = self.compute_hash(url, self.source_code)
+            item["source_metadata"] = {
+                "fetch_via": "hot_html_fallback",
+                "endpoint": response.url,
+            }
+            item["hash"] = self.compute_hash(title, self.source_code, url)
             self.crawled_items.append(item)
             yield item
 
         if count == 0:
             logger.warning(
-                "Tencent HTML: 0 items. Status=%s body[:500]: %s",
+                "Tencent HTML fallback: 0 unique items. Status=%s body[:500]: %s",
                 response.status,
                 response.text[:500],
             )
 
-    def parse_fallback(self, response) -> Iterator[NewsArticle]:
-        yield from self.parse_html(response)
+    def _headers(self, *, accept: str) -> dict[str, str]:
+        return {
+            "Referer": "https://news.qq.com/",
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/122.0.0.0 Safari/537.36"
+            ),
+            "Accept": accept,
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        }

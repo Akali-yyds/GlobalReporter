@@ -984,7 +984,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
           polygonStrokeColor={polygonStrokeColor}
           polygonAltitude={polygonAltitude}
           polygonLabel={polygonLabel}
-          polygonsTransitionDuration={layer === 'country' ? 700 : 0}
+          polygonsTransitionDuration={0}
           onPolygonHover={handlePolygonHover}
           onPolygonClick={() => { /* handled by onMouseUp + hoveredFeatureRef */ }}
           pointsData={layer === 'country' ? [] : hotspots}
@@ -1048,7 +1048,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
           <div className="admin1-tooltip-name">{hoveredCountryEntry.name}</div>
           {hoveredCountryEntry.count > 0 && (
             <div className="admin1-tooltip-heat">
-              {hoveredCountryEntry.count} news · heat {hoveredCountryEntry.heat}
+              {hoveredCountryEntry.count} related reports · heat {hoveredCountryEntry.heat}
             </div>
           )}
         </div>
@@ -1062,7 +1062,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
           <div className="admin1-tooltip-name">{hoveredAdmin1Entry.name}</div>
           {hoveredAdmin1Entry.count > 0 && (
             <div className="admin1-tooltip-heat">
-              {hoveredAdmin1Entry.count} news · heat {hoveredAdmin1Entry.heat}
+              {hoveredAdmin1Entry.count} related reports · heat {hoveredAdmin1Entry.heat}
             </div>
           )}
         </div>

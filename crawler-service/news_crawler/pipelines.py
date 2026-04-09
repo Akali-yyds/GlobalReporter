@@ -129,8 +129,16 @@ class NewsCrawlerPipeline:
         
         self.crawled_count += 1
         record_feed_scraped(spider, adapter)
-        title_preview = (adapter.get("title") or "No title")[:50]
-        logger.info(f"[Pipeline] Processed item: {title_preview}")
+        title_preview = (adapter.get("title") or "No title").strip().replace("\n", " ")[:90]
+        source_code = adapter.get("source_code") or spider.name
+        heat_score = int(adapter.get("heat_score") or 0)
+        logger.info(
+            "[LiveItem] spider=%s source=%s heat=%s title=%s",
+            spider.name,
+            source_code,
+            heat_score,
+            title_preview,
+        )
         
         return item
     

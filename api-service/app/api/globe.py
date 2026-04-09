@@ -311,11 +311,22 @@ async def get_region_news(
     db: Session = Depends(get_db),
 ):
     """Get news for a specific region."""
+    country_like_key = geo_key.isalpha() and len(geo_key) == 2
+
     if geo_key == "CN":
         event_ids = (
             db.query(EventGeoMapping.event_id)
             .join(GeoEntity, GeoEntity.id == EventGeoMapping.geo_id)
             .filter(GeoEntity.country_code.in_(["CN", "TW"]))
+            .distinct()
+            .subquery()
+        )
+    elif country_like_key:
+        cc = geo_key.upper()
+        event_ids = (
+            db.query(EventGeoMapping.event_id)
+            .join(GeoEntity, GeoEntity.id == EventGeoMapping.geo_id)
+            .filter(GeoEntity.country_code == cc)
             .distinct()
             .subquery()
         )

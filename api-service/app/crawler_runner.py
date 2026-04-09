@@ -14,6 +14,7 @@ import subprocess
 import sys
 import threading
 import time
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
@@ -238,28 +239,69 @@ def _run_scrapy_sync(spider_name: str, max_items: int = 50, feed_scope: str = "d
     job_label = spider_name if feed_scope == "default" else f"{spider_name}:{feed_scope}"
     job_id = _create_crawl_job(spider_name, job_spider_name=job_label)
     logger.info("Running crawler: %s (cwd=%s)", " ".join(cmd), cwd)
+
+    stderr_tail: deque[str] = deque(maxlen=800)
+    stdout_tail: deque[str] = deque(maxlen=400)
+
+    def _pump_stream(stream, *, is_error: bool) -> None:
+        if stream is None:
+            return
+        prefix = f"[Crawler:{job_label}]"
+        for raw_line in iter(stream.readline, ""):
+            line = raw_line.rstrip()
+            if not line:
+                continue
+            if is_error:
+                stderr_tail.append(line)
+            else:
+                stdout_tail.append(line)
+
+            if "Processed item:" in line or "[Ingest]" in line or "item_scraped_count" in line:
+                logger.info("%s %s", prefix, line)
+            elif is_error:
+                logger.info("%s %s", prefix, line)
+            else:
+                logger.debug("%s %s", prefix, line)
+        stream.close()
+
     try:
-        proc = subprocess.run(
+        proc = subprocess.Popen(
             cmd,
             cwd=str(cwd),
             env=env,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=600,
+            bufsize=1,
         )
     except FileNotFoundError:
         logger.exception("Python executable not found: %s", _python_executable())
         _update_crawl_job(job_id, status="failed", error_message=f"Python executable not found: {_python_executable()}")
         return 127
+
+    stdout_thread = threading.Thread(target=_pump_stream, args=(proc.stdout,), kwargs={"is_error": False}, daemon=True)
+    stderr_thread = threading.Thread(target=_pump_stream, args=(proc.stderr,), kwargs={"is_error": True}, daemon=True)
+    stdout_thread.start()
+    stderr_thread.start()
+
+    try:
+        proc.wait(timeout=600)
     except subprocess.TimeoutExpired:
+        proc.kill()
+        stdout_thread.join(timeout=2)
+        stderr_thread.join(timeout=2)
         logger.error("Crawler timed out for spider=%s", spider_name)
         _update_crawl_job(job_id, status="failed", error_message="Crawler timed out after 600 seconds")
         return 124
 
+    stdout_thread.join(timeout=2)
+    stderr_thread.join(timeout=2)
+
     elapsed = time.monotonic() - t_start
-    err = proc.stderr or ""
+    err = "\n".join(stderr_tail)
+    out = "\n".join(stdout_tail)
 
     # Extract key Scrapy stats from stderr
     m_scraped = re.search(r"'item_scraped_count':\s*(\d+)", err)
@@ -299,8 +341,11 @@ def _run_scrapy_sync(spider_name: str, max_items: int = 50, feed_scope: str = "d
             logger.info("Crawler OK spider=%s elapsed=%.1fs", spider_name, elapsed)
         if scraped == 0:
             logger.warning(
-                "Spider %s returned 0 items (%.1fs). STDERR tail:\n%s",
-                spider_name, elapsed, err[-4000:] if err else "(empty)",
+                "Spider %s returned 0 items (%.1fs). STDERR/STDOUT tail:\n%s\n%s",
+                spider_name,
+                elapsed,
+                err[-2000:] if err else "(empty)",
+                out[-1200:] if out else "",
             )
 
     return proc.returncode

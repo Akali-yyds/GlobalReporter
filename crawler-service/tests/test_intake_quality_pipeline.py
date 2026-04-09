@@ -58,7 +58,7 @@ def test_signal_classifier_does_not_match_war_inside_warns():
     )
 
     assert "conflict" not in result.tags
-    assert result.category == "news"
+    assert result.category == "policy"
 
 
 def test_signal_classifier_marks_low_value_entertainment():
@@ -72,6 +72,33 @@ def test_signal_classifier_marks_low_value_entertainment():
 
     assert result.should_drop
     assert result.low_value_score >= 2
+
+
+def test_signal_classifier_extracts_health_and_energy_tags():
+    result = classify_news_signal(
+        title="WHO warns hospitals as oil pipeline outage hits vaccine transport routes",
+        summary="Public health teams are responding while energy infrastructure remains disrupted.",
+        content=None,
+        source_code="bbc",
+        base_category="news",
+    )
+
+    assert "health" in result.tags
+    assert "energy" in result.tags
+    assert "transport" in result.tags
+
+
+def test_signal_classifier_adds_other_tag_as_fallback():
+    result = classify_news_signal(
+        title="Regional mayor gives interview about local school opening schedule",
+        summary="Officials discussed routine municipal planning for the coming week.",
+        content=None,
+        source_code="guardian",
+        base_category="news",
+    )
+
+    assert result.tags == ["other"]
+    assert not result.should_drop
 
 
 def test_source_profile_assigns_lead_defaults():
@@ -131,6 +158,23 @@ def test_intake_pipeline_assigns_tags_and_semantic_category():
     assert "ai" in result["tags"]
     assert "cybersecurity" in result["tags"]
     assert "breaking" in result["tags"]
+
+
+def test_intake_pipeline_preserves_other_fallback_tag():
+    spider = _DummySpider()
+    pipeline = IntakeQualityPipeline(filter_low_value=True)
+    item = {
+        "title": "Local officials discuss routine road maintenance budget",
+        "summary": "The meeting covered administrative scheduling and ordinary planning updates.",
+        "content": None,
+        "source_code": "guardian",
+        "source_class": "news",
+        "category": "news",
+        "published_at": datetime.utcnow().isoformat(),
+    }
+
+    result = pipeline.process_item(item, spider)
+    assert result["tags"] == ["other"]
 
 
 def test_intake_pipeline_drops_low_value_item():

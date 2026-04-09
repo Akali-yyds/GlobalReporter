@@ -4,6 +4,7 @@ import NewsSidebar from './components/NewsSidebar';
 import NewsDetailPanel from './components/NewsDetailPanel';
 import { useNewsStore } from './stores/newsStore';
 import { useGlobeStore } from './stores/globeStore';
+import { useGeoLayerStore } from './stores/geoLayerStore';
 import { jobsApi, newsApi } from './services/api';
 import { hoursSinceBeijingMidnight, type NewsTimeRange } from './utils/timeUtils';
 import type { Hotspot, SourceTier } from './types/news';
@@ -57,6 +58,7 @@ function App() {
     setSourceTier,
   } = useNewsStore();
   const { hotspots, fetchHotspots } = useGlobeStore();
+  const { refreshActiveLayer } = useGeoLayerStore();
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [manualRefresh, setManualRefresh] = useState(false);
   const [timeRange, setTimeRange] = useState<NewsTimeRange>('today');
@@ -74,7 +76,8 @@ function App() {
   const refreshData = useCallback(async () => {
     await fetchHotEvents({ scope: 'all', page: 1 });
     await fetchHotspots({ scope: 'all' });
-  }, [fetchHotEvents, fetchHotspots]);
+    await refreshActiveLayer();
+  }, [fetchHotEvents, fetchHotspots, refreshActiveLayer]);
 
   useEffect(() => {
     void refreshData();

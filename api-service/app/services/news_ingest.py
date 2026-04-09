@@ -802,9 +802,9 @@ def _source_tier_match_adjustment(
 def _topic_heat_bonus(category: Optional[str], tags: List[str]) -> int:
     score = 0
     tag_set = set(tags)
-    if tag_set & {"ai", "chip", "cybersecurity", "conflict", "disaster"}:
+    if tag_set & {"ai", "chip", "cybersecurity", "conflict", "disaster", "protest"}:
         score += 12
-    if tag_set & {"science", "space", "climate", "policy", "economy"}:
+    if tag_set & {"science", "space", "climate", "policy", "economy", "health", "energy", "diplomacy", "transport", "crime"}:
         score += 8
     if category in {"technology", "science", "conflict", "disaster"}:
         score += 6

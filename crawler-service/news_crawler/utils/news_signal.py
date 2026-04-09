@@ -20,14 +20,14 @@ class NewsSignalResult:
 
 _TOPIC_KEYWORDS: list[tuple[str, str, tuple[str, ...]]] = [
     ("ai", "technology", (
-        " ai ", "artificial intelligence", "openai", "chatgpt", "gpt-", "large language model",
+        "ai", "artificial intelligence", "openai", "chatgpt", "gpt-", "large language model",
         "llm", "anthropic", "gemini", "deepmind", "deepseek", "machine learning",
         "人工智能", "大模型", "模型推理", "生成式ai", "生成式人工智能",
     )),
     ("chip", "technology", (
         "semiconductor", "chip", "chips", "tsmc", "nvidia", "amd", "intel", "qualcomm",
-        "broadcom", "arm ", "wafer", "gpu", "cpu", "foundry",
-        "芯片", "半导体", "晶圆", "显卡", "算力", "gpu", "cpu",
+        "broadcom", "arm", "wafer", "gpu", "cpu", "foundry",
+        "芯片", "半导体", "晶圆", "显卡", "算力",
     )),
     ("cybersecurity", "technology", (
         "cybersecurity", "cyber attack", "ransomware", "malware", "data breach", "hacker",
@@ -47,7 +47,7 @@ _TOPIC_KEYWORDS: list[tuple[str, str, tuple[str, ...]]] = [
     ("conflict", "conflict", (
         "war", "missile", "airstrike", "drone strike", "troops", "military", "ceasefire",
         "artillery", "offensive", "defense ministry", "defence ministry", "navy", "armed forces",
-        "冲突", "战争", "导弹", "空袭", "袭击", "无人机袭击", "停火", "军方", "军队", "国防部",
+        "冲突", "战争", "导弹", "空袭", "被击", "无人机袭击", "停火", "军方", "军队", "国防部",
     )),
     ("disaster", "disaster", (
         "earthquake", "flood", "wildfire", "typhoon", "hurricane", "storm", "volcano",
@@ -58,15 +58,46 @@ _TOPIC_KEYWORDS: list[tuple[str, str, tuple[str, ...]]] = [
         "climate", "global warming", "emissions", "carbon", "greenhouse gas", "extreme weather",
         "气候", "全球变暖", "碳排放", "温室气体", "极端天气",
     )),
+    ("health", "science", (
+        "who", "world health organization", "cdc", "public health", "pandemic", "epidemic",
+        "outbreak", "virus", "vaccine", "vaccination", "hospital", "medical", "disease",
+        "infection", "infectious", "health ministry", "health department",
+        "公共卫生", "疫情", "传染病", "病毒", "疫苗", "医院", "医疗", "病例", "感染", "卫生部",
+    )),
+    ("energy", "business", (
+        "oil", "crude", "gas", "lng", "opec", "refinery", "pipeline", "power grid",
+        "electricity", "blackout", "nuclear plant", "nuclear power", "diesel", "petrol",
+        "能源", "石油", "原油", "天然气", "炼油厂", "管道", "电网", "停电", "核电", "电力",
+    )),
     ("policy", "policy", (
         "white house", "ministry", "cabinet", "executive order", "regulation", "bill", "senate",
         "parliament", "tariff", "sanction", "central bank", "supreme court",
         "政策", "法案", "监管", "国务院", "部委", "央行", "制裁", "关税", "最高法院",
     )),
+    ("diplomacy", "policy", (
+        "summit", "talks", "negotiation", "negotiations", "diplomatic", "embassy", "envoy",
+        "foreign minister", "delegation", "treaty", "bilateral", "trilateral", "peace talks",
+        "外交", "会谈", "谈判", "使馆", "大使馆", "特使", "外长", "代表团", "条约", "峰会",
+    )),
     ("economy", "business", (
         "inflation", "gdp", "market", "stocks", "bond yield", "interest rate", "trade data",
         "earnings", "revenue", "layoffs", "manufacturing",
         "经济", "股市", "通胀", "利率", "财报", "营收", "裁员", "制造业",
+    )),
+    ("transport", "business", (
+        "transport", "aviation", "airline", "airport", "flight", "shipping", "port", "rail", "train",
+        "metro", "subway", "strait", "shipping lane", "cargo", "logistics", "harbor",
+        "交通", "航空", "机场", "航班", "港口", "航运", "铁路", "列车", "地铁", "物流", "海峡",
+    )),
+    ("protest", "conflict", (
+        "protest", "demonstration", "riot", "strike", "march", "clashes", "crowd", "rally",
+        "protesters", "union strike", "sit-in",
+        "抗议", "示威", "骚乱", "罢工", "游行", "冲突", "集会", "人群", "静坐",
+    )),
+    ("crime", "conflict", (
+        "shooting", "murder", "arrest", "fraud", "smuggling", "cartel", "kidnapping",
+        "police investigation", "suspect", "charged", "convicted", "crime",
+        "枪击", "谋杀", "逮捕", "诈骗", "走私", "绑架", "警方调查", "嫌疑人", "指控", "犯罪",
     )),
 ]
 
@@ -143,7 +174,6 @@ def classify_news_signal(
     score += min(3, len(priority_hits))
     matched_positive.extend(priority_hits)
 
-    # Social feeds with no strong positive signal are more likely to be noise.
     if (source_code or "").strip().lower() in {"weibo"}:
         score -= 1
 
@@ -159,6 +189,9 @@ def classify_news_signal(
     for tag in tags:
         if tag not in ordered_tags:
             ordered_tags.append(tag)
+
+    if not ordered_tags and not should_drop:
+        ordered_tags.append("other")
 
     return NewsSignalResult(
         category=category,

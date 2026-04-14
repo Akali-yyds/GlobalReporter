@@ -29,128 +29,73 @@ function isFavorited(eventId: string): boolean {
   }
 }
 
-const NewsDetailPanel = memo(
-  ({
-    event,
-    isOpen,
-    onClose,
-    onBack,
-    regionHotspots,
-    regionTotal,
-    regionName,
-    onRegionHotspotClick,
-  }: NewsDetailPanelProps) => {
-    const [detail, setDetail] = useState<NewsEvent | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [loadError, setLoadError] = useState<string | null>(null);
-    const [favorited, setFavorited] = useState(false);
+const NewsDetailPanel = memo(({
+  event,
+  isOpen,
+  onClose,
+  onBack,
+  regionHotspots,
+  regionTotal,
+  regionName,
+  onRegionHotspotClick,
+}: NewsDetailPanelProps) => {
+  const [detail, setDetail] = useState<NewsEvent | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [favorited, setFavorited] = useState(false);
 
-    const uniqueRegionHotspots = useMemo(() => {
-      if (regionHotspots == null) return null;
+  const uniqueRegionHotspots = useMemo(() => {
+    if (regionHotspots == null) return null;
 
-      const unique = new Map<string, Hotspot>();
-      regionHotspots.forEach((hotspot, index) => {
-        const key = hotspot.event_id || `${hotspot.geo_key || 'geo'}-${index}`;
-        const existing = unique.get(key);
-        if (!existing || hotspot.heat_score > existing.heat_score) {
-          unique.set(key, hotspot);
-        }
-      });
-
-      return Array.from(unique.values());
-    }, [regionHotspots]);
-
-    useEffect(() => {
-      if (!isOpen || !event) {
-        setDetail(null);
-        setLoadError(null);
-        setFavorited(false);
-        return;
+    const unique = new Map<string, Hotspot>();
+    regionHotspots.forEach((hotspot, index) => {
+      const key = hotspot.event_id || `${hotspot.geo_key || 'geo'}-${index}`;
+      const existing = unique.get(key);
+      if (!existing || hotspot.heat_score > existing.heat_score) {
+        unique.set(key, hotspot);
       }
+    });
 
-      let cancelled = false;
-      setLoading(true);
+    return Array.from(unique.values());
+  }, [regionHotspots]);
+
+  useEffect(() => {
+    if (!isOpen || !event) {
+      setDetail(null);
       setLoadError(null);
-      setDetail(event);
-      setFavorited(isFavorited(event.id));
-
-      newsApi
-        .getNewsDetail(event.id)
-        .then((data) => {
-          if (!cancelled) setDetail(data as unknown as NewsEvent);
-        })
-        .catch(() => {
-          if (!cancelled) setLoadError('加载详情失败');
-        })
-        .finally(() => {
-          if (!cancelled) setLoading(false);
-        });
-
-      return () => {
-        cancelled = true;
-      };
-    }, [isOpen, event?.id]);
-
-    if (!isOpen) return null;
-
-    if (uniqueRegionHotspots != null) {
-      return (
-        <div className="news-detail-panel">
-          <div className="detail-header">
-            <h2 className="detail-title">{regionName || '地区新闻'}</h2>
-            <div className="detail-header-actions">
-              {onBack && (
-                <button className="detail-back" onClick={onBack} aria-label="返回上级">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M19 12H5M12 5l-7 7 7 7" />
-                  </svg>
-                </button>
-              )}
-              <button className="detail-close" onClick={onClose} aria-label="关闭">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <div className="detail-content">
-            {uniqueRegionHotspots.length === 0 ? (
-              <p className="detail-loading">该地区暂无热点新闻</p>
-            ) : (
-              <>
-                <div className="region-news-count">{regionTotal ?? uniqueRegionHotspots.length} news</div>
-                <ul className="region-news-list">
-                  {uniqueRegionHotspots.map((hotspot, index) => (
-                    <li
-                      key={hotspot.event_id || `${hotspot.geo_key || 'geo'}-${index}`}
-                      className="region-news-item"
-                      onClick={() => onRegionHotspotClick?.(hotspot.event_id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => e.key === 'Enter' && onRegionHotspotClick?.(hotspot.event_id)}
-                    >
-                      <div className="region-news-meta">
-                        <span className="region-news-heat">热度 {hotspot.heat_score}</span>
-                        {hotspot.geo_name && <span className="region-news-geo">{hotspot.geo_name}</span>}
-                      </div>
-                      <span className="region-news-title">{hotspot.title}</span>
-                      {hotspot.summary && <span className="region-news-summary">{hotspot.summary}</span>}
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </div>
-        </div>
-      );
+      setFavorited(false);
+      return;
     }
 
-    if (!event) return null;
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+    setDetail(event);
+    setFavorited(isFavorited(event.id));
 
+    newsApi
+      .getNewsDetail(event.id)
+      .then((data) => {
+        if (!cancelled) setDetail(data as unknown as NewsEvent);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadError('Failed to load details.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [event, isOpen]);
+
+  if (!isOpen) return null;
+
+  if (event) {
     const resolved = detail ?? event;
     const articleUrl = resolved.primary_article_url?.trim();
-    const channelLabel = resolved.primary_source_name || resolved.primary_source_code || '未知渠道';
+    const channelLabel = resolved.primary_source_name || resolved.primary_source_code || 'Unknown source';
 
     const openOriginal = () => {
       if (articleUrl) {
@@ -167,20 +112,30 @@ const NewsDetailPanel = memo(
     return (
       <div className="news-detail-panel">
         <div className="detail-header">
-          <h2 className="detail-title">新闻详情</h2>
+          <div className="detail-header-actions">
+            {onBack && (
+              <button type="button" className="detail-back" onClick={onBack} aria-label="Back to list">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M19 12H5M12 5l-7 7 7 7" />
+                </svg>
+              </button>
+            )}
+            <h2 className="detail-title">News Detail</h2>
+          </div>
+
           <div className="detail-header-actions">
             <button
               type="button"
               className={`favorite-btn ${favorited ? 'active' : ''}`}
               onClick={handleFavoriteToggle}
-              title={favorited ? '取消收藏' : '收藏新闻'}
-              aria-label={favorited ? '取消收藏' : '收藏新闻'}
+              title={favorited ? 'Remove from favorites' : 'Add to favorites'}
+              aria-label={favorited ? 'Remove from favorites' : 'Add to favorites'}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill={favorited ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
             </button>
-            <button className="detail-close" onClick={onClose} aria-label="关闭">
+            <button type="button" className="detail-close" onClick={onClose} aria-label="Close">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
@@ -190,13 +145,13 @@ const NewsDetailPanel = memo(
 
         <div className="detail-content">
           {loadError && <p className="detail-inline-error">{loadError}</p>}
-          {loading && <p className="detail-loading">加载中...</p>}
+          {loading && <p className="detail-loading">Loading...</p>}
 
           <article className="detail-article">
             <h1 className="article-title">{resolved.title}</h1>
 
-            <div className="article-channel" title="新闻来源渠道">
-              <span className="channel-label">渠道</span>
+            <div className="article-channel" title="Primary source">
+              <span className="channel-label">Channel</span>
               <span className="channel-value">{channelLabel}</span>
               {resolved.primary_source_code && resolved.primary_source_name && (
                 <span className="channel-code">({resolved.primary_source_code})</span>
@@ -204,20 +159,20 @@ const NewsDetailPanel = memo(
             </div>
 
             <div className="article-meta">
-              <span className="meta-country">{resolved.main_country || '未知地区'}</span>
+              <span className="meta-country">{resolved.main_country || 'Unknown region'}</span>
               <span className="meta-separator">|</span>
-              <span className="meta-heat">热度: {resolved.heat_score}</span>
+              <span className="meta-heat">Heat: {resolved.heat_score}</span>
               <span className="meta-separator">|</span>
-              <span className="meta-articles">{resolved.article_count} 篇相关报道</span>
+              <span className="meta-articles">{resolved.article_count} reports</span>
             </div>
 
             <div className="article-summary">
-              <h3>摘要</h3>
-              <p>{resolved.summary || '暂无摘要'}</p>
+              <h3>Summary</h3>
+              <p>{resolved.summary || 'No summary available.'}</p>
             </div>
 
             <div className="article-regions">
-              <h3>涉及地区</h3>
+              <h3>Regions</h3>
               <div className="region-tags">
                 {resolved.geo_mappings?.map((mapping) => {
                   const label = mapping.geo_name || mapping.matched_text || mapping.geo_key;
@@ -227,14 +182,15 @@ const NewsDetailPanel = memo(
                       ? 'country'
                       : mapping.display_type?.includes('city')
                         ? 'city'
-                        : 'admin1');
-                  const typeLabel = geoType === 'country' ? '国' : geoType === 'city' ? '市' : '省';
+                        : 'region');
+                  const typeLabel = geoType === 'country' ? 'Country' : geoType === 'city' ? 'City' : 'Region';
                   const precisionHint = mapping.display_type ? ` · ${mapping.display_type}` : '';
+
                   return (
                     <span
                       key={mapping.id}
                       className={`region-tag region-tag--${geoType}${mapping.is_primary ? ' region-tag--primary' : ''}`}
-                      title={`来源: ${mapping.matched_text || '-'} · 置信度 ${(mapping.confidence * 100).toFixed(0)}%${precisionHint}`}
+                      title={`Source: ${mapping.matched_text || '-'} · Confidence: ${(mapping.confidence * 100).toFixed(0)}%${precisionHint}`}
                     >
                       <span className="region-tag-type">{typeLabel}</span>
                       {label}
@@ -243,14 +199,14 @@ const NewsDetailPanel = memo(
                   );
                 })}
                 {(!resolved.geo_mappings || resolved.geo_mappings.length === 0) && (
-                  <span className="no-region">暂无地区信息</span>
+                  <span className="no-region">No region metadata.</span>
                 )}
               </div>
             </div>
 
             {resolved.related_sources && resolved.related_sources.length > 1 && (
               <div className="article-sources-list">
-                <h3>报道来源</h3>
+                <h3>Related Sources</h3>
                 <ul>
                   {resolved.related_sources.map((source) => (
                     <li key={`${source.source_code}-${source.article_url}`}>
@@ -273,9 +229,9 @@ const NewsDetailPanel = memo(
                 className="action-btn primary"
                 disabled={!articleUrl}
                 onClick={openOriginal}
-                title={articleUrl || '暂无原文链接'}
+                title={articleUrl || 'Original link unavailable'}
               >
-                查看原文
+                Open Original
               </button>
               <button
                 type="button"
@@ -287,7 +243,7 @@ const NewsDetailPanel = memo(
                 }}
                 disabled={!articleUrl}
               >
-                复制链接
+                Copy Link
               </button>
             </div>
           </article>
@@ -295,7 +251,69 @@ const NewsDetailPanel = memo(
       </div>
     );
   }
-);
+
+  if (uniqueRegionHotspots != null) {
+    return (
+      <div className="news-detail-panel">
+        <div className="detail-header">
+          <div className="detail-header-actions">
+            {onBack && (
+              <button type="button" className="detail-back" onClick={onBack} aria-label="Back">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M19 12H5M12 5l-7 7 7 7" />
+                </svg>
+              </button>
+            )}
+            <h2 className="detail-title">{regionName || 'Regional News'}</h2>
+          </div>
+
+          <div className="detail-header-actions">
+            <button type="button" className="detail-close" onClick={onClose} aria-label="Close">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="detail-content">
+          {uniqueRegionHotspots.length === 0 ? (
+            <p className="detail-loading">No news for this region yet.</p>
+          ) : (
+            <>
+              <div className="region-news-count">{regionTotal ?? uniqueRegionHotspots.length} news</div>
+              <ul className="region-news-list">
+                {uniqueRegionHotspots.map((hotspot, index) => (
+                  <li
+                    key={hotspot.event_id || `${hotspot.geo_key || 'geo'}-${index}`}
+                    className="region-news-item"
+                    onClick={() => onRegionHotspotClick?.(hotspot.event_id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        onRegionHotspotClick?.(hotspot.event_id);
+                      }
+                    }}
+                  >
+                    <div className="region-news-meta">
+                      <span className="region-news-heat">Heat {hotspot.heat_score}</span>
+                      {hotspot.geo_name && <span className="region-news-geo">{hotspot.geo_name}</span>}
+                    </div>
+                    <span className="region-news-title">{hotspot.title}</span>
+                    {hotspot.summary && <span className="region-news-summary">{hotspot.summary}</span>}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+});
 
 NewsDetailPanel.displayName = 'NewsDetailPanel';
 

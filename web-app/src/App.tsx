@@ -7,7 +7,7 @@ import { useGlobeStore } from './stores/globeStore';
 import { useGeoLayerStore } from './stores/geoLayerStore';
 import { jobsApi, newsApi } from './services/api';
 import { hoursSinceBeijingMidnight, type NewsTimeRange } from './utils/timeUtils';
-import type { Hotspot, SourceTier } from './types/news';
+import type { Hotspot, NewsEvent, SourceTier } from './types/news';
 import type { VideoRolloutState, VideoType } from './types/video';
 import './App.css';
 
@@ -70,6 +70,32 @@ function isCrawlerActive(latestJob: any): boolean {
   return now - latestTs <= JOB_ACTIVE_WINDOW_MS;
 }
 
+function buildFallbackEvent(hotspot: Hotspot): NewsEvent {
+  return {
+    id: hotspot.event_id,
+    title: hotspot.title,
+    summary: hotspot.summary || '',
+    main_country: hotspot.geo_key || '',
+    event_level:
+      hotspot.geo_type === 'country'
+        ? 'country'
+        : hotspot.geo_type === 'city'
+          ? 'city'
+          : 'region',
+    heat_score: hotspot.heat_score,
+    article_count: hotspot.article_count ?? 1,
+    first_seen_at: '',
+    last_seen_at: '',
+  };
+}
+
+type RegionEntry = {
+  name: string;
+  hotspots: Hotspot[];
+  total: number;
+  geoKey?: string;
+};
+
 function App() {
   const {
     selectedEvent,
@@ -84,8 +110,10 @@ function App() {
     clearTags,
     setSourceTier,
   } = useNewsStore();
+
   const { hotspots, fetchHotspots } = useGlobeStore();
   const { refreshActiveLayer } = useGeoLayerStore();
+
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [manualRefresh, setManualRefresh] = useState(false);
   const [timeRange, setTimeRange] = useState<NewsTimeRange>('today');
@@ -94,10 +122,11 @@ function App() {
   const [videoType, setVideoType] = useState<'all' | VideoType>('all');
   const [videoRolloutState, setVideoRolloutState] = useState<'all' | VideoRolloutState>('all');
   const [videoTopic, setVideoTopic] = useState<string | null>(null);
-  type RegionEntry = { name: string; hotspots: Hotspot[]; total: number; geoKey?: string };
   const [regionStack, setRegionStack] = useState<RegionEntry[]>([]);
+
   const regionPanel = regionStack.length > 0 ? regionStack[regionStack.length - 1] : null;
   const regionBreadcrumb = regionStack.length > 1 ? regionStack.slice(1).map((r) => r.name) : [];
+
   const crawlPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const backgroundPollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wasCrawlerActiveRef = useRef(false);
@@ -108,25 +137,25 @@ function App() {
       since_hours: hoursSinceBeijingMidnight(),
     });
     const rawItems = Array.isArray(resp) ? resp : (resp?.items ?? []);
-    const total = typeof resp?.total === 'number' ? resp.total : rawItems.length;
-    const items = dedupeHotspotsByEventId(rawItems.map((e: any) => ({
-      event_id: e.id,
-      title: e.title,
-      summary: e.summary,
-      heat_score: e.heat_score,
-      geo_key: geoKey,
-      geo_type: inferRegionGeoType(geoKey),
-      display_type: 'polygon' as const,
-      center: undefined,
-      iso_a3: e.iso_a3 ?? null,
-      article_count: e.article_count ?? 1,
-      confidence: 1,
-    })));
+    const totalValue = typeof resp?.total === 'number' ? resp.total : rawItems.length;
+    const items = dedupeHotspotsByEventId(
+      rawItems.map((e: any) => ({
+        event_id: e.id,
+        title: e.title,
+        summary: e.summary,
+        heat_score: e.heat_score,
+        geo_key: geoKey,
+        geo_type: inferRegionGeoType(geoKey),
+        display_type: 'polygon' as const,
+        center: undefined,
+        iso_a3: e.iso_a3 ?? null,
+        article_count: e.article_count ?? 1,
+        confidence: 1,
+      }))
+    );
 
     setRegionStack((prev) =>
-      prev.map((entry) =>
-        entry.geoKey === geoKey ? { ...entry, hotspots: items, total } : entry
-      )
+      prev.map((entry) => (entry.geoKey === geoKey ? { ...entry, hotspots: items, total: totalValue } : entry))
     );
   }, []);
 
@@ -165,7 +194,6 @@ function App() {
         if (active) {
           await refreshData();
         } else if (wasCrawlerActiveRef.current) {
-          // Run one final sync after a sweep finishes so counts settle on the latest data.
           await refreshData();
         }
 
@@ -192,6 +220,7 @@ function App() {
       window.clearInterval(crawlPollRef.current);
       crawlPollRef.current = null;
     }
+
     setManualRefresh(true);
     try {
       await jobsApi.triggerCrawl({
@@ -204,11 +233,11 @@ function App() {
     } finally {
       setManualRefresh(false);
     }
-    const pollMs = ACTIVE_REFRESH_MS;
-    const maxMs = 180000;
+
+    const maxMs = 180_000;
     crawlPollRef.current = window.setInterval(() => {
       void refreshData();
-    }, pollMs);
+    }, ACTIVE_REFRESH_MS);
     window.setTimeout(() => {
       if (crawlPollRef.current != null) {
         window.clearInterval(crawlPollRef.current);
@@ -219,28 +248,24 @@ function App() {
 
   const handleHotspotClick = (eventId: string) => {
     const event = events.find((e) => e.id === eventId);
-    if (event) {
-      setRegionStack([]);
-      setSelectedEvent(event);
-      setIsDetailOpen(true);
-    }
+    if (!event) return;
+    setRegionStack([]);
+    setSelectedEvent(event);
+    setIsDetailOpen(true);
   };
 
   const handleAdmin1RegionClick = useCallback((
     regionHotspots: Hotspot[],
     regionName: string,
     countryName: string,
-    geoKey?: string,
+    geoKey?: string
   ) => {
     setSelectedEvent(null);
     setIsDetailOpen(false);
-    const label = countryName ? `${regionName} · ${countryName}` : regionName;
+
+    const label = regionName;
     const isAdminDrillDown = countryName !== '';
-    const seededHotspots = mapRegionHotspots(
-      regionHotspots,
-      geoKey,
-      isAdminDrillDown ? 'region' : 'country'
-    );
+    const seededHotspots = mapRegionHotspots(regionHotspots, geoKey, isAdminDrillDown ? 'region' : 'country');
 
     if (isAdminDrillDown) {
       setRegionStack((prev) =>
@@ -248,28 +273,30 @@ function App() {
           ? [...prev.slice(0, -1), { name: label, hotspots: seededHotspots, total: seededHotspots.length, geoKey }]
           : [...prev, { name: label, hotspots: seededHotspots, total: seededHotspots.length, geoKey }]
       );
+
       if (geoKey) {
-        newsApi.getRegionNews(geoKey, { page_size: 40, since_hours: hoursSinceBeijingMidnight() })
+        newsApi
+          .getRegionNews(geoKey, { page_size: 40, since_hours: hoursSinceBeijingMidnight() })
           .then((resp: any) => {
             const rawItems = Array.isArray(resp) ? resp : (resp?.items ?? []);
-            const total = typeof resp?.total === 'number' ? resp.total : rawItems.length;
-            const items = dedupeHotspotsByEventId(rawItems.map((e: any) => ({
-              event_id: e.id,
-              title: e.title,
-              summary: e.summary,
-              heat_score: e.heat_score,
-              geo_key: geoKey,
-              geo_type: 'region' as const,
-              display_type: 'polygon' as const,
-              center: undefined,
-              iso_a3: e.iso_a3 ?? null,
-              article_count: e.article_count ?? 1,
-              confidence: 1,
-            })));
+            const totalValue = typeof resp?.total === 'number' ? resp.total : rawItems.length;
+            const items = dedupeHotspotsByEventId(
+              rawItems.map((e: any) => ({
+                event_id: e.id,
+                title: e.title,
+                summary: e.summary,
+                heat_score: e.heat_score,
+                geo_key: geoKey,
+                geo_type: 'region' as const,
+                display_type: 'polygon' as const,
+                center: undefined,
+                iso_a3: e.iso_a3 ?? null,
+                article_count: e.article_count ?? 1,
+                confidence: 1,
+              }))
+            );
             setRegionStack((prev) =>
-              prev.map((entry) =>
-                entry.geoKey === geoKey ? { ...entry, hotspots: items, total } : entry
-              )
+              prev.map((entry) => (entry.geoKey === geoKey ? { ...entry, hotspots: items, total: totalValue } : entry))
             );
           })
           .catch(() => {});
@@ -279,27 +306,28 @@ function App() {
 
     setRegionStack([{ name: label, hotspots: seededHotspots, total: seededHotspots.length, geoKey }]);
     if (geoKey) {
-      newsApi.getRegionNews(geoKey, { page_size: 40, since_hours: hoursSinceBeijingMidnight() })
+      newsApi
+        .getRegionNews(geoKey, { page_size: 40, since_hours: hoursSinceBeijingMidnight() })
         .then((resp: any) => {
           const rawItems = Array.isArray(resp) ? resp : (resp?.items ?? []);
-          const total = typeof resp?.total === 'number' ? resp.total : rawItems.length;
-          const items = dedupeHotspotsByEventId(rawItems.map((e: any) => ({
-            event_id: e.id,
-            title: e.title,
-            summary: e.summary,
-            heat_score: e.heat_score,
-            geo_key: geoKey,
-            geo_type: 'country' as const,
-            display_type: 'polygon' as const,
-            center: undefined,
-            iso_a3: e.iso_a3 ?? null,
-            article_count: e.article_count ?? 1,
-            confidence: 1,
-          })));
+          const totalValue = typeof resp?.total === 'number' ? resp.total : rawItems.length;
+          const items = dedupeHotspotsByEventId(
+            rawItems.map((e: any) => ({
+              event_id: e.id,
+              title: e.title,
+              summary: e.summary,
+              heat_score: e.heat_score,
+              geo_key: geoKey,
+              geo_type: 'country' as const,
+              display_type: 'polygon' as const,
+              center: undefined,
+              iso_a3: e.iso_a3 ?? null,
+              article_count: e.article_count ?? 1,
+              confidence: 1,
+            }))
+          );
           setRegionStack((prev) =>
-            prev.map((entry) =>
-              entry.geoKey === geoKey ? { ...entry, hotspots: items, total } : entry
-            )
+            prev.map((entry) => (entry.geoKey === geoKey ? { ...entry, hotspots: items, total: totalValue } : entry))
           );
         })
         .catch(() => {});
@@ -317,24 +345,36 @@ function App() {
   }, [setSelectedEvent]);
 
   const handleRegionHotspotClick = (eventId: string) => {
-    setRegionStack([]);
-    handleHotspotClick(eventId);
+    const event = events.find((e) => e.id === eventId);
+    if (event) {
+      setSelectedEvent(event);
+      setIsDetailOpen(true);
+      return;
+    }
+
+    const hotspot = regionPanel?.hotspots.find((item) => item.event_id === eventId);
+    if (!hotspot) return;
+    setSelectedEvent(buildFallbackEvent(hotspot));
+    setIsDetailOpen(true);
   };
 
   const handleCloseRegionPanel = () => {
+    setSelectedEvent(null);
+    setIsDetailOpen(false);
     setRegionStack([]);
   };
 
   const handleRegionBack = () => {
+    setSelectedEvent(null);
+    setIsDetailOpen(false);
     setRegionStack((prev) => prev.slice(0, -1));
   };
 
   const handleEventClick = (eventId: string) => {
     const event = events.find((e) => e.id === eventId);
-    if (event) {
-      setSelectedEvent(event);
-      setIsDetailOpen(true);
-    }
+    if (!event) return;
+    setSelectedEvent(event);
+    setIsDetailOpen(true);
   };
 
   const handleTagToggle = useCallback((tag: string) => {
@@ -359,8 +399,14 @@ function App() {
   }, [setSelectedEvent]);
 
   const handleCloseDetail = () => {
+    setSelectedEvent(null);
     setIsDetailOpen(false);
   };
+
+  const handleDetailBack = useCallback(() => {
+    setSelectedEvent(null);
+    setIsDetailOpen(false);
+  }, [setSelectedEvent]);
 
   return (
     <div className="app">
@@ -427,7 +473,7 @@ function App() {
             event={selectedEvent}
             isOpen={isDetailOpen || !!regionPanel}
             onClose={regionPanel ? handleCloseRegionPanel : handleCloseDetail}
-            onBack={regionStack.length > 1 ? handleRegionBack : undefined}
+            onBack={selectedEvent && regionPanel ? handleDetailBack : (regionStack.length > 1 ? handleRegionBack : undefined)}
             regionHotspots={regionPanel?.hotspots ?? null}
             regionTotal={regionPanel?.total ?? null}
             regionName={regionPanel?.name ?? null}

@@ -107,6 +107,11 @@ function countryDisplayName(feature: GeoFeature): string {
   return name || countryCode(feature);
 }
 
+function admin1DisplayName(feature: GeoFeature): string {
+  const p = feature.properties || {};
+  return String(p.name || p.NAME || p.name_en || p.woe_label || p.region || '').trim();
+}
+
 function normalizeByLog(value: number, maxValue: number): number {
   if (value <= 0 || maxValue <= 0) return 0;
   return Math.min(1, Math.log1p(value) / Math.log1p(maxValue));
@@ -779,7 +784,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
       if (layer === 'country') {
         const feat = polygon as GeoFeature;
         const code = admin1Code(feat);
-        const name = String(feat.properties?.['name'] || feat.properties?.['NAME'] || code);
+        const name = admin1DisplayName(feat) || code;
         setHoveredAdmin1(code);
         const entry = admin1Hotspots.find(
           (a) => a.admin1_code === code || (a.admin1_name || '').toLowerCase() === name.toLowerCase()
@@ -872,7 +877,7 @@ const GlobeScene: React.FC<GlobeSceneProps> = ({
           // fall through to the global-layer handler 鈫?
         } else {
           const a1code = admin1Code(feat);
-          const regionName = String(feat.properties?.['name'] || feat.properties?.['NAME'] || a1code);
+          const regionName = admin1DisplayName(feat) || a1code;
           const featureName = regionName.toLowerCase();
           const nameEntry = admin1Hotspots.find(
             (a) => (a.admin1_name || '').toLowerCase() === featureName

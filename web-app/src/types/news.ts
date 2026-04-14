@@ -113,6 +113,7 @@ export interface Hotspot {
   iso_a3?: string | null;
   title: string;
   summary?: string;
+  article_count?: number;
   confidence: number;
 }
 

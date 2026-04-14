@@ -1,7 +1,13 @@
+.idea/
+.venv/
+.env
+**/.env
 .pytest_cache/
+**/.pytest_cache/
 **/__pycache__/
 *.py[cod]
 
+**/node_modules/
 web-app/dist/
 
 *.log

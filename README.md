@@ -1,4 +1,4 @@
-# AiNewser
+# GlobalReporter
 
 面向全球热点新闻聚合与空间可视化场景的本地优先项目。  
 项目把「新闻抓取 -> 去重聚合 -> 地理提取 -> 事件入库 -> 3D 地球展示 -> 国家 / 地区钻取」串成一条完整链路，后端使用 FastAPI + SQLAlchemy，爬虫使用 Scrapy，前端使用 React + Vite + react-globe.gl。
